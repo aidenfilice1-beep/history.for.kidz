@@ -3,1438 +3,1222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Parkour Runner - Extreme Skin Shop</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <title>Ball Dodge Arena (Combat)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tone.js for sound generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
-        /* General styling for the page */
+        /* Custom styles for the game elements */
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap');
+
         body {
+            background-color: #0d1117; /* Dark background */
+            font-family: 'Chakra Petch', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             margin: 0;
             overflow: hidden;
-            background-color: #1a1a2e; /* Dark theme background */
-            font-family: 'Inter', sans-serif;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
         }
 
-        /* Canvas should take up the primary viewing area */
         #game-container {
-            width: 100vw;
-            height: 85vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
             position: relative;
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.5), 0 0 50px rgba(0, 255, 255, 0.2);
+            border: 4px solid #00ffff; /* Neon cyan border */
+            border-radius: 12px;
+            background-color: #161b22; /* Inner dark background */
         }
 
         canvas {
             display: block;
-            outline: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border-radius: 12px;
+            touch-action: none; /* Prevent browser touch actions on canvas */
         }
 
-        /* Control panel styling */
-        #controls {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            background-color: rgba(0, 0, 0, 0.6);
-            border-radius: 8px 8px 0 0;
-            z-index: 10;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .control-key {
-            display: inline-block;
-            background-color: #4e455e;
-            color: #ffffff;
-            padding: 4px 8px;
-            margin: 0 2px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-weight: bold;
-        }
-
-        h1 {
-            color: #ff9900;
-            margin-bottom: 5px;
-            font-size: 1.5rem;
-        }
-
-        .info-text {
-            margin-top: 5px;
-            color: #cccccc;
-        }
-        
-        #level-display {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #00ff7f;
-            background-color: rgba(0, 0, 0, 0.4);
-            padding: 5px 10px;
-            border-radius: 8px;
-            z-index: 10;
-        }
-
-        /* Coin display styling (Top Right, "Pretty Big") */
-        #coin-display {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 2.0rem;
-            font-weight: bold;
-            color: #ffd700; /* Gold color for coins */
-            background-color: rgba(0, 0, 0, 0.6);
-            padding: 8px 15px;
-            border-radius: 12px;
-            z-index: 10;
-            min-width: 150px;
-            text-align: center;
-            border: 2px solid #ffcc00;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-
-        /* Shop Button (Moved to Bottom Left) */
-        #shop-button {
-            position: absolute;
-            bottom: 10px; 
-            left: 10px; 
-            z-index: 10;
-        }
-
-        #open-shop-btn {
-            background-color: #ff9900;
-            color: #1a1a2e;
-            padding: 8px 15px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.2s;
-        }
-
-        #open-shop-btn:hover {
-            background-color: #ffaa33;
-        }
-
-        /* Shop Modal */
-        #shop-modal {
+        #overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            display: flex;
+            /* Explicitly set to flex so JS can toggle between 'flex' and 'none' */
+            display: flex; 
             justify-content: center;
             align-items: center;
-            z-index: 50;
-        }
-
-        #shop-content-container {
-            width: 90%;
-            max-width: 1200px;
-            max-height: 90%;
-            background: #2b2b40;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
-            overflow-y: auto;
-            border: 3px solid #ffcc00;
-        }
-
-        #shop-title {
-            color: #ffd700;
-            text-align: center;
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 2.5rem;
-        }
-        
-        /* Rarity Styles */
-        .rarity-Common { color: #cccccc; }
-        .rarity-Uncommon { color: #00ccff; }
-        .rarity-Rare { color: #ff33cc; }
-        .rarity-Epic { color: #9933ff; }
-        .rarity-Legendary { color: #ff9900; }
-        .rarity-Mythic { color: #ff0000; }
-        
-        .skin-card {
-            background: #4e455e;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            transition: transform 0.1s, box-shadow 0.2s;
-            border: 2px solid transparent;
-        }
-        
-        .skin-card.selected {
-            border-color: #00ff7f; /* Green highlight for selected pet */
-            box-shadow: 0 0 15px rgba(0, 255, 127, 0.8);
-        }
-
-        .skin-card:hover:not(.selected) {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        }
-
-        .skin-name {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #ffffff;
-            margin-bottom: 5px;
-            white-space: nowrap; /* Prevent name wrapping */
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .skin-rarity {
-            font-size: 0.9rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 3px;
-        }
-
-        .skin-icon {
-            font-size: 3em;
-            margin: 10px 0;
-            display: block;
-        }
-        
-        .skin-desc {
-            font-size: 0.8em;
-            color: #ccc;
-            margin-bottom: 10px;
-            min-height: 40px; /* Ensure consistent card height */
-        }
-
-        .skin-price {
-            color: #ffd700;
-            font-size: 1.0em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .skin-multiplier {
-            color: #00ff7f;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-        
-        .buy-button {
-            background-color: #00ff7f;
-            color: #1a1a2e;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            margin-top: 10px;
-            cursor: pointer;
-            width: 90%;
-        }
-
-        .buy-button:hover:not(:disabled) {
-            background-color: #33ff99;
-        }
-
-        .equipped-label {
-            background-color: #007f3f; 
-            color: white;
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            margin-top: 10px;
-            display: inline-block;
-        }
-
-        #close-shop-btn {
-            background-color: #ff0055;
-            color: white;
-            padding: 10px 20px;
-            border: none;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(5px);
             border-radius: 8px;
-            font-size: 1.2rem;
-            margin-top: 20px;
-            width: 100%;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            z-index: 10;
+            pointer-events: none; /* Allows clicks to pass through by default */
         }
 
-        #close-shop-btn:hover {
-            background-color: #cc0044;
-        }
-        
-        #skin-list-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            padding-bottom: 20px;
+        .game-over-visible {
+            pointer-events: auto !important; /* Enable interaction when visible */
         }
 
+        .game-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 0 15px #00ffff;
+            background: linear-gradient(145deg, #00bfff, #00ffff);
+            color: #0d1117;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.25rem;
+            padding: 0.75rem 2rem;
+            font-weight: 700;
+        }
+        .game-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px #00ffff, 0 0 50px #00ffff;
+        }
 
-        /* Message box for game status/pause */
-        #message-box {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(43, 43, 64, 0.9);
-            padding: 20px 40px;
+        /* --- Shop specific styles --- */
+        #shopContainer {
+            background-color: #161b22;
+            border: 2px solid #39ff14; /* Neon green accent */
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            z-index: 20;
-            transition: opacity 0.3s ease;
+            max-width: 95%; /* Make it wider */
+            width: 600px;
+            max-height: 90%;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 1.5rem;
+            padding: 2rem;
         }
 
-        .hidden {
-            opacity: 0;
-            pointer-events: none;
+        #shipList {
+            /* Better grid layout for spacious cards */
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            padding: 0.5rem;
+            overflow-y: auto;
+            max-height: 450px; /* slightly more height */
         }
 
-        .message-title {
-            font-size: 2em;
-            color: #ff9900; /* Orange for pause/start */
-        }
-        .message-subtitle {
-            font-size: 1.2em;
-            color: #e0e0ff;
-            margin-top: 10px;
-        }
-        
-        .win-color {
-             color: #00ff7f !important; /* Bright green for win */
+        .ship-card {
+            background-color: #1f2733;
+            border: 1px solid #334d60;
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s;
         }
         
+        /* Apply custom border color based on ship glow */
+        .ship-card[data-glow-color="#ff0000"] { box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); } /* Viper */
+        .ship-card[data-glow-color="#ee82ee"] { box-shadow: 0 0 10px rgba(238, 130, 238, 0.5); } /* Ghost */
+        .ship-card[data-glow-color="#ffff00"] { box-shadow: 0 0 10px rgba(255, 255, 0, 0.5); } /* Titan */
+        .ship-card[data-glow-color="#00bfff"] { box-shadow: 0 0 10px rgba(0, 191, 255, 0.5); } /* Quantum */
+        .ship-card[data-glow-color="#39ff14"] { box-shadow: 0 0 15px rgba(57, 255, 20, 0.8); } /* Ultimate */
+
+        .ship-card.equipped {
+            border: 3px solid #39ff14;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #39ff14;
+        }
+        .ship-card:not(.equipped):hover {
+            transform: translateY(-8px);
+            border-color: #00ffff;
+        }
     </style>
 </head>
 <body>
+    <div id="game-container" class="w-full max-w-lg mx-auto aspect-square">
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
 
-    <div id="game-container">
-        <div id="level-display">Level 0</div>
-        <!-- Shop Button GUI -->
-        <div id="shop-button">
-            <button id="open-shop-btn">🎨 Skins Shop (<span class="control-key" style="margin: 0;">E</span>)</button>
+        <!-- Score Display (Time) -->
+        <div id="scoreDisplay" class="absolute top-4 left-4 text-2xl font-bold text-cyan-400">
+            TIME: 0.00s
         </div>
-        <!-- Coin Display GUI -->
-        <div id="coin-display">💰 0</div>
         
-        <!-- Shop Modal -->
-        <div id="shop-modal" class="hidden">
-            <div id="shop-content-container">
-                <h2 id="shop-title">The Grand Parkour Skin Emporium (104 Items)</h2>
-                <div id="skin-list-container">
-                    <!-- Skin cards will be rendered here by JavaScript -->
+        <!-- Coin Display (New) -->
+        <div id="coinDisplay" class="absolute top-4 right-4 text-2xl font-bold text-yellow-400">
+            COINS: 0
+        </div>
+
+        <!-- Game Over / Start Overlay -->
+        <div id="overlay">
+            
+            <!-- Standard Overlay Content (Start/Game Over) -->
+            <div id="standardOverlay" class="flex flex-col justify-center items-center">
+                <h1 id="overlayTitle" class="text-6xl mb-4 font-extrabold tracking-widest text-cyan-400"></h1>
+                <p id="overlayMessage" class="text-4xl text-white mb-4 text-center"></p>
+                <p id="totalCoinsMessage" class="text-3xl text-yellow-400 mb-8 text-center"></p>
+                
+                <button id="actionButton" class="game-button rounded-full">
+                    <!-- Text updated by JS -->
+                </button>
+                <button id="shopButton" class="game-button rounded-full mt-4 bg-purple-600 shadow-md shadow-purple-900" style="box-shadow: 0 0 15px #ee82ee;">
+                    VISIT THE SHOP
+                </button>
+                <p class="text-sm text-gray-400 mt-6">(Use WASD or Arrow Keys / Tap to move & shoot)</p>
+            </div>
+
+
+            <!-- Shop Container (Hidden by default) -->
+            <div id="shopContainer" class="hidden w-full h-full p-4">
+                <h2 class="text-4xl font-extrabold text-white mb-4 text-center pb-2 text-cyan-300">
+                    SHIP MARKETPLACE
+                </h2>
+
+                <div id="shipList" class="grid" style="max-height: 450px;">
+                    <!-- Ship cards will be dynamically inserted here -->
                 </div>
-                <!-- Button to close the shop (can also be closed with E or ESC) -->
-                <button id="close-shop-btn">Close Shop</button>
+
+                <div class="mt-4 flex flex-col sm:flex-row justify-between items-center border-t pt-4 border-cyan-500">
+                    <p class="text-2xl text-yellow-400 font-bold mb-4 sm:mb-0">Balance: <span id="shopCoinBalance">0</span> COINS</p>
+                    <button id="backButton" class="game-button rounded-full px-4 py-2" style="font-size: 1rem;">
+                        BACK TO ARENA
+                    </button>
+                </div>
             </div>
+            
         </div>
-
-        <!-- Three.js renderer attaches here -->
-        <div id="controls">
-            <div class="info-text">
-                Movement: <span class="control-key">W</span> <span class="control-key">A</span> <span class="control-key">S</span> <span class="control-key">D</span> | Jump: <span class="control-key">SPACE</span> | Shop: <span class="control-key">E</span> | Pause: <span class="control-key">ESC</span>
-                <br>Goal: Reach the <strong style="color: #ffff00;">Yellow Flag</strong> on the final platform!
-            </div>
-        </div>
-
-        <div id="message-box">
-            <div class="message-title">Click to Start</div>
-            <div class="message-subtitle">Click anywhere on the screen to lock the mouse and begin. Press ESC to pause.</div>
-        </div>
-
     </div>
 
-    <script>
-        // --- Game Setup Variables ---
-        let scene, camera, renderer;
-        let player, playerVelocity = new THREE.Vector3(0, 0, 0);
-        let playerMesh = null; // The visible geometry of the player (sphere/box)
-        const PLAYER_SCALE = 0.3; // Base radius/half-size for player mesh
-        let moveSpeed = 0.15;
-        let jumpPower = 0.3;
-        const GRAVITY = 0.015;
-        let keys = {};
-        let platforms = [];
-        let finishLine;
-        let finishFlag; 
-        const PLAYER_RADIUS = 0.3; 
-        let levelCounter = 0; 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global environment variables (provided by the runtime)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Firebase Initialization ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        // setLogLevel('debug'); // Uncomment for debugging Firestore
+
+        let userId = null;
+        let isAuthReady = false;
         
-        // --- COIN SYSTEM VARIABLES ---
-        let coinCount = 0;
-        const LEVEL_REWARD = 10;
-        // -----------------------------
-        
-        // --- PLAYER SKIN DATA (104 Skins) ---
-        const SKINS = [
-            // --- ORIGINAL COMMON SKINS (Price 0-50, Multiplier 1.0 - 1.2) ---
-            { id: 'skin_001', name: 'Basic Runner', icon: '🔴', price: 0, color: 0xff0000, rarity: 'Common', shape: 'sphere', multiplier: 1.0, description: 'The standard issue parkour unit.', features: 'none' },
-            { id: 'skin_002', name: 'Aqua Prism', icon: '💎', price: 50, color: 0x00ffff, rarity: 'Common', shape: 'box', multiplier: 1.2, description: 'Grants clarity and stability (high visibility).', features: 'particles' },
-            
-            // --- ORIGINAL UNCOMMON/RARE/EPIC SKINS (Adjusted to fit new scheme) ---
-            { id: 'skin_003', name: 'Golden Orb', icon: '✨', price: 150, color: 0xffd700, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'Radiant and slightly magnetic.', features: 'pulsate' },
-            { id: 'skin_004', name: 'Void Ghost', icon: '👻', price: 400, color: 0x9370db, rarity: 'Rare', shape: 'sphere', multiplier: 1.8, description: 'A phantom of the speedway. (New Multiplier)', features: 'transparency' },
-            
-            // --- NEW UNCOMMON SKINS (x1.3 - x1.5, Price 100 - 300) ---
-            { id: 'skin_005', name: 'Lime Zest', icon: '🎾', price: 100, color: 0xccff00, rarity: 'Uncommon', shape: 'box', multiplier: 1.3, description: 'A sharp, acidic cube for those who like to stand out.', features: 'none' },
-            { id: 'skin_006', name: 'Hot Pink', icon: '🌸', price: 120, color: 0xff69b4, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.3, description: 'Impossible to ignore, blazing fast color.', features: 'none' },
-            { id: 'skin_007', name: 'Desert Sand', icon: '🏜️', price: 130, color: 0xedc9af, rarity: 'Uncommon', shape: 'box', multiplier: 1.3, description: 'A tough, dusty traveler.', features: 'none' },
-            { id: 'skin_008', name: 'Forest Moss', icon: '🌿', price: 140, color: 0x7c947c, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.3, description: 'Blends in, but reliable.', features: 'none' },
-            { id: 'skin_009', name: 'Orange Peel', icon: '🍊', price: 160, color: 0xffa500, rarity: 'Uncommon', shape: 'box', multiplier: 1.4, description: 'Simple, citrusy, and zippy.', features: 'none' },
-            { id: 'skin_010', name: 'Electric Blue', icon: '⚡', price: 170, color: 0x1f00ff, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.4, description: 'A basic bolt of energy.', features: 'none' },
-            { id: 'skin_011', name: 'Silver Dime', icon: '⚪', price: 180, color: 0xc0c0c0, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.4, description: 'A simple coin, shiny and standard.', features: 'none' },
-            { id: 'skin_012', name: 'Bronze Age', icon: '🥉', price: 190, color: 0xcd7f32, rarity: 'Uncommon', shape: 'box', multiplier: 1.4, description: 'Tarnished but enduring.', features: 'pulsate' },
-            { id: 'skin_013', name: 'Lavender Dream', icon: '🟣', price: 200, color: 0xe6e6fa, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.4, description: 'Light and airy, feels like floating.', features: 'transparency' },
-            { id: 'skin_014', name: 'Cobalt Shell', icon: '🔵', price: 210, color: 0x0047ab, rarity: 'Uncommon', shape: 'box', multiplier: 1.4, description: 'A deep, protective shell.', features: 'none' },
-            { id: 'skin_015', name: 'Cherry Bomb', icon: '🍒', price: 220, color: 0xde3163, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.4, description: 'Small, red, and surprisingly explosive on jumps.', features: 'none' },
-            { id: 'skin_016', name: 'Rubber Tire', icon: '⚫', price: 230, color: 0x333333, rarity: 'Uncommon', shape: 'box', multiplier: 1.4, description: 'Traction focused, excellent grip.', features: 'none' },
-            { id: 'skin_017', name: 'Peppermint', icon: '🍬', price: 240, color: 0xffeaea, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'Sweet movement, cool design.', features: 'none' },
-            { id: 'skin_018', name: 'Sunset Glow', icon: '🌅', price: 250, color: 0xfd5e53, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'Warm colors for a comfortable run.', features: 'pulsate' },
-            { id: 'skin_019', name: 'Deep Sea', icon: '🌊', price: 260, color: 0x008b8b, rarity: 'Uncommon', shape: 'box', multiplier: 1.5, description: 'Drawn from the cold depths.', features: 'none' },
-            { id: 'skin_020', name: 'Toxic Sludge', icon: '🤢', price: 270, color: 0x7cfc00, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'Wiggly and highly visible.', features: 'particles' },
-            { id: 'skin_021', name: 'Brick Wall', icon: '🧱', price: 280, color: 0xb22222, rarity: 'Uncommon', shape: 'box', multiplier: 1.5, description: 'Solid, dependable, and heavy.', features: 'none' },
-            { id: 'skin_022', name: 'Sky High', icon: '☁️', price: 290, color: 0x87ceeb, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'As light as air, watch the clouds go by.', features: 'transparency' },
-            { id: 'skin_023', name: 'Copper Coin', icon: '🪙', price: 300, color: 0xb87333, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'A valuable basic.', features: 'none' },
-            { id: 'skin_024', name: 'Jade Cube', icon: '🔰', price: 300, color: 0x00a86b, rarity: 'Uncommon', shape: 'box', multiplier: 1.5, description: 'Hard stone, surprisingly fast.', features: 'none' },
-            { id: 'skin_025', name: 'Grape Soda', icon: '🍇', price: 300, color: 0x582c4f, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'Fizzy and pops when you jump.', features: 'none' },
-            { id: 'skin_026', name: 'Mars Rock', icon: '🪐', price: 300, color: 0x996515, rarity: 'Uncommon', shape: 'box', multiplier: 1.5, description: 'Ancient Martian dirt.', features: 'none' },
-            { id: 'skin_027', name: 'Plasma Green', icon: '🟢', price: 300, color: 0x39ff14, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'A fizzing sphere of low-power energy.', features: 'pulsate' },
-            { id: 'skin_028', name: 'Wet Cement', icon: '🏗️', price: 300, color: 0x737373, rarity: 'Uncommon', shape: 'box', multiplier: 1.5, description: 'Sluggish look, swift movement.', features: 'none' },
-            { id: 'skin_029', name: 'Frosted Glass', icon: '🧊', price: 300, color: 0xeeeeee, rarity: 'Uncommon', shape: 'sphere', multiplier: 1.5, description: 'Hard to see, but easy to move.', features: 'transparency' },
+        // --- Game State Variables ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const coinDisplay = document.getElementById('coinDisplay'); 
+        const totalCoinsMessage = document.getElementById('totalCoinsMessage'); 
 
-            // --- NEW RARE SKINS (x1.6 - x1.9, Price 500 - 1000) ---
-            { id: 'skin_030', name: 'Fire Opal', icon: '🔥', price: 500, color: 0xff8c00, rarity: 'Rare', shape: 'sphere', multiplier: 1.6, description: 'Flickering inner core, slight warmth.', features: 'pulsate' },
-            { id: 'skin_031', name: 'Amethyst Crystal', icon: '🔮', price: 550, color: 0x9966cc, rarity: 'Rare', shape: 'box', multiplier: 1.6, description: 'Sharp edges, smooth flight.', features: 'none' },
-            { id: 'skin_032', name: 'Ruby Core', icon: '♦️', price: 600, color: 0xe0115f, rarity: 'Rare', shape: 'sphere', multiplier: 1.6, description: 'A jewel of precision.', features: 'none' },
-            { id: 'skin_033', name: 'Sapphire Box', icon: '🟦', price: 650, color: 0x0f52ba, rarity: 'Rare', shape: 'box', multiplier: 1.7, description: 'Deep blue and strong, built for speed.', features: 'none' },
-            { id: 'skin_034', name: 'Black Ice', icon: '⚫', price: 700, color: 0x1f262a, rarity: 'Rare', shape: 'sphere', multiplier: 1.7, description: 'Slick and cold, very fast look.', features: 'transparency' },
-            { id: 'skin_035', name: 'Titanium Shell', icon: '🛡️', price: 750, color: 0x8899aa, rarity: 'Rare', shape: 'box', multiplier: 1.7, description: 'Hardened shell, slow to react, impossible to break.', features: 'pulsate' },
-            { id: 'skin_036', name: 'Lava Flow', icon: '🌋', price: 800, color: 0xcc472a, rarity: 'Rare', shape: 'sphere', multiplier: 1.7, description: 'Still molten, dangerous to touch.', features: 'pulsate' },
-            { id: 'skin_037', name: 'Chrome Spike', icon: '💿', price: 850, color: 0x808080, rarity: 'Rare', shape: 'box', multiplier: 1.7, description: 'Reflects the light perfectly.', features: 'none' },
-            { id: 'skin_038', name: 'Rainbow Flicker', icon: '🌈', price: 900, color: 0xff00ff, rarity: 'Rare', shape: 'sphere', multiplier: 1.8, description: 'Shifts colors constantly (visually just magenta).', features: 'pulsate' },
-            { id: 'skin_039', name: 'Bubble Gum', icon: '🫧', price: 950, color: 0xffc0cb, rarity: 'Rare', shape: 'sphere', multiplier: 1.8, description: 'Sticky and stretchy, great recovery.', features: 'transparency' },
-            { id: 'skin_040', name: 'Neon Glitch', icon: '👾', price: 1000, color: 0x00ffcc, rarity: 'Rare', shape: 'box', multiplier: 1.8, description: 'Visual static, moves with an erratic precision.', features: 'particles' },
-            { id: 'skin_041', name: 'Vaporwave', icon: '🌴', price: 1000, color: 0x800080, rarity: 'Rare', shape: 'sphere', multiplier: 1.8, description: 'A smooth purple, fueled by nostalgia.', features: 'none' },
-            { id: 'skin_042', name: 'Crystal Skull', icon: '💀', price: 1100, color: 0xadd8e6, rarity: 'Rare', shape: 'box', multiplier: 1.8, description: 'Spooky but translucent.', features: 'transparency' },
-            { id: 'skin_043', name: 'Crimson Tide', icon: '🩸', price: 1200, color: 0xdc143c, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'A powerful surge of red.', features: 'pulsate' },
-            { id: 'skin_044', name: 'Jade Dragon', icon: '🐉', price: 1300, color: 0x00a693, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'Ancient green stone of the east.', features: 'none' },
-            { id: 'skin_045', name: 'Acid Rain', icon: '🌧️', price: 1400, color: 0x8a2be2, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'Purple and harmful, but very fast.', features: 'particles' },
-            { id: 'skin_046', name: 'Molten Gold', icon: '👑', price: 1500, color: 0xffa812, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'Hotter than the standard Golden Orb.', features: 'pulsate' },
-            { id: 'skin_047', name: 'Starlight', icon: '⭐', price: 1600, color: 0xfafad2, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'A faint, distant star.', features: 'particles' },
-            { id: 'skin_048', name: 'Obsidian Slab', icon: '⚫', price: 1700, color: 0x0c0c0c, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'Darkest black, absorbs light.', features: 'none' },
-            { id: 'skin_049', name: 'Coral Reef', icon: '🐠', price: 1800, color: 0xff7f50, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'Vibrant orange-pink from the warm waters.', features: 'none' },
-            { id: 'skin_050', name: 'Radioactive', icon: '☢️', price: 1900, color: 0xccff00, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'Emits a faint, dangerous glow.', features: 'pulsate' },
-            { id: 'skin_051', name: 'Emerald Gem', icon: '🟢', price: 2000, color: 0x50c878, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'A highly valuable green jewel.', features: 'none' },
-            { id: 'skin_052', name: 'Frostbite', icon: '🥶', price: 2100, color: 0xa9f8ff, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'Icy cold to the touch.', features: 'particles' },
-            { id: 'skin_053', name: 'Galactic Core', icon: '🌌', price: 2200, color: 0x3a2c4e, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'A miniature center of a galaxy.', features: 'pulsate' },
-            { id: 'skin_054', name: 'Digital Rain', icon: '💾', price: 2300, color: 0x00ff80, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'Lines of code flow across the surface.', features: 'transparency' },
-            { id: 'skin_055', name: 'Tidal Wave', icon: '🌊', price: 2400, color: 0x00bfff, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'The power of the ocean surge.', features: 'none' },
-            { id: 'skin_056', name: 'Iron Shard', icon: '🔩', price: 2500, color: 0x43464b, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'Rough metal, high durability.', features: 'none' },
-            { id: 'skin_057', name: 'Rose Gold', icon: '🌸', price: 2600, color: 0xb76e79, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'Elegant and swift.', features: 'none' },
-            { id: 'skin_058', name: 'Ghost Fire', icon: '🕯️', price: 2700, color: 0xffe4b5, rarity: 'Rare', shape: 'sphere', multiplier: 1.9, description: 'A pale, ethereal flame.', features: 'transparency' },
-            { id: 'skin_059', name: 'Abyss Depth', icon: '⚫', price: 2800, color: 0x000033, rarity: 'Rare', shape: 'box', multiplier: 1.9, description: 'So dark it almost vanishes.', features: 'none' },
+        // Overlay elements
+        const overlay = document.getElementById('overlay');
+        const standardOverlay = document.getElementById('standardOverlay');
+        const shopContainer = document.getElementById('shopContainer');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayMessage = document.getElementById('overlayMessage');
+        const actionButton = document.getElementById('actionButton');
+        const shopButton = document.getElementById('shopButton');
+        const backButton = document.getElementById('backButton');
+        const shipList = document.getElementById('shipList');
+        const shopCoinBalance = document.getElementById('shopCoinBalance');
 
-            // --- NEW EPIC SKINS (x2.0 - x2.5, Price 3000 - 5000) ---
-            { id: 'skin_060', name: 'Arc Reactor', icon: '☢️', price: 3000, color: 0x00ccff, rarity: 'Epic', shape: 'sphere', multiplier: 2.0, description: 'A contained fusion core. High energy.', features: 'pulsate' },
-            { id: 'skin_061', name: 'Nebula Cloud', icon: '🔭', price: 3200, color: 0x9370db, rarity: 'Epic', shape: 'sphere', multiplier: 2.0, description: 'A soft, drifting cosmic entity.', features: 'particles' },
-            { id: 'skin_062', name: 'Hazard Tape', icon: '⚠️', price: 3400, color: 0xffff00, rarity: 'Epic', shape: 'box', multiplier: 2.1, description: 'A highly visible warning sign.', features: 'none' },
-            { id: 'skin_063', name: 'Plasma Cube', icon: '🟢', price: 3600, color: 0x00ff00, rarity: 'Epic', shape: 'box', multiplier: 2.1, description: 'A perfect green plasma box, crackling with juice.', features: 'pulsate' },
-            { id: 'skin_064', name: 'Shadow Step', icon: '👟', price: 3800, color: 0x2f4f4f, rarity: 'Epic', shape: 'sphere', multiplier: 2.1, description: 'Moves without leaving a trace.', features: 'transparency' },
-            { id: 'skin_065', name: 'Electric Storm', icon: '⛈️', price: 4000, color: 0x483d8b, rarity: 'Epic', shape: 'sphere', multiplier: 2.2, description: 'Internal lightning flashes.', features: 'particles' },
-            { id: 'skin_066', name: 'Magma Block', icon: '🔥', price: 4200, color: 0x8b0000, rarity: 'Epic', shape: 'box', multiplier: 2.2, description: 'Extremely hot and heavy-looking.', features: 'pulsate' },
-            { id: 'skin_067', name: 'Cryo Freeze', icon: '❄️', price: 4400, color: 0x4682b4, rarity: 'Epic', shape: 'box', multiplier: 2.2, description: 'Made of supercooled blue liquid.', features: 'particles' },
-            { id: 'skin_068', name: 'Phoenix Ash', icon: '🐦', price: 4600, color: 0x5d5d5d, rarity: 'Epic', shape: 'sphere', multiplier: 2.3, description: 'The remains of a great flight, ready to rise.', features: 'none' },
-            { id: 'skin_069', name: 'Hydro Vortex', icon: '🌀', price: 4800, color: 0x1e90ff, rarity: 'Epic', shape: 'sphere', multiplier: 2.3, description: 'A perpetual, contained water spiral.', features: 'transparency' },
-            { id: 'skin_070', name: 'Chrome Plated', icon: '🤖', price: 5000, color: 0xcccccc, rarity: 'Epic', shape: 'box', multiplier: 2.3, description: 'Solid metal casing, reflective sheen.', features: 'none' },
-            { id: 'skin_071', name: 'Crimson Ghost', icon: '👻', price: 5200, color: 0xff4040, rarity: 'Epic', shape: 'sphere', multiplier: 2.3, description: 'A highly visible, transparent red phantom.', features: 'transparency' },
-            { id: 'skin_072', name: 'Sandstorm', icon: '🌪️', price: 5400, color: 0xf4a460, rarity: 'Epic', shape: 'sphere', multiplier: 2.4, description: 'A swirling mass of desert dust.', features: 'particles' },
-            { id: 'skin_073', name: 'Circuit Board', icon: '🔋', price: 5600, color: 0x008080, rarity: 'Epic', shape: 'box', multiplier: 2.4, description: 'The inner workings of a high-speed processor.', features: 'pulsate' },
-            { id: 'skin_074', name: 'Infinity Cube', icon: '♾️', price: 5800, color: 0x4b0082, rarity: 'Epic', shape: 'box', multiplier: 2.4, description: 'A seemingly endless block of deep indigo.', features: 'none' },
-            { id: 'skin_075', name: 'Lunar Dust', icon: '🌕', price: 6000, color: 0xe0e0e0, rarity: 'Epic', shape: 'sphere', multiplier: 2.4, description: 'Pale white and weightless.', features: 'particles' },
-            { id: 'skin_076', name: 'Black Hole', icon: '⚫', price: 6200, color: 0x0a0a0a, rarity: 'Epic', shape: 'sphere', multiplier: 2.4, description: 'Absorbs all light, a true challenge to track.', features: 'none' },
-            { id: 'skin_077', name: 'Cosmic Jelly', icon: '🪐', price: 6400, color: 0xff66cc, rarity: 'Epic', shape: 'sphere', multiplier: 2.5, description: 'Bubbly pink cosmic goo.', features: 'transparency' },
-            { id: 'skin_078', name: 'Aether Cube', icon: '💨', price: 6600, color: 0x98fb98, rarity: 'Epic', shape: 'box', multiplier: 2.5, description: 'Floating green elemental air.', features: 'particles' },
-            { id: 'skin_079', name: 'Bio-Luminescent', icon: '💡', price: 6800, color: 0x33ff66, rarity: 'Epic', shape: 'sphere', multiplier: 2.5, description: 'Glows faintly in the dark.', features: 'pulsate' },
-            { id: 'skin_080', name: 'Terra Cotta', icon: '🏺', price: 7000, color: 0xcc7722, rarity: 'Epic', shape: 'box', multiplier: 2.5, description: 'Ancient clay, unbreakable.', features: 'none' },
-            { id: 'skin_081', name: 'Northern Lights', icon: '✨', price: 7200, color: 0x4bcfa0, rarity: 'Epic', shape: 'sphere', multiplier: 2.5, description: 'A beautiful, shifting aurora.', features: 'transparency' },
-            { id: 'skin_082', name: 'Iron Man Armor', icon: '🦾', price: 7400, color: 0xcc0000, rarity: 'Epic', shape: 'box', multiplier: 2.5, description: 'Red and gold plate, built for flight.', features: 'pulsate' },
-            { id: 'skin_083', name: 'Tesseract', icon: '🌌', price: 7600, color: 0x00aaff, rarity: 'Epic', shape: 'box', multiplier: 2.5, description: 'A mysterious cosmic power source.', features: 'particles' },
-            { id: 'skin_084', name: 'Midnight Violet', icon: '🌙', price: 7800, color: 0x551a8b, rarity: 'Epic', shape: 'sphere', multiplier: 2.5, description: 'A deep, mysterious violet sphere.', features: 'none' },
-            
-            // --- NEW LEGENDARY SKINS (x2.6 - x3.0, Price 10000 - 20000) ---
-            { id: 'skin_085', name: 'Cthulhu\'s Eye', icon: '👁️', price: 10000, color: 0x8a3324, rarity: 'Legendary', shape: 'sphere', multiplier: 2.6, description: 'A monstrous color, drives runners mad.', features: 'pulsate' },
-            { id: 'skin_086', name: 'Frozen Comet', icon: '☄️', price: 11000, color: 0x7cfc00, rarity: 'Legendary', shape: 'box', multiplier: 2.6, description: 'Trail of icy particles follows every move.', features: 'particles' },
-            { id: 'skin_087', name: 'Eternity Stone', icon: '🕰️', price: 12000, color: 0x9c27b0, rarity: 'Legendary', shape: 'box', multiplier: 2.7, description: 'Imbued with the power of time itself.', features: 'none' },
-            { id: 'skin_088', name: 'Dimensional Tear', icon: '⚫', price: 13000, color: 0x000000, rarity: 'Legendary', shape: 'sphere', multiplier: 2.7, description: 'A gap in reality, almost fully invisible.', features: 'transparency' },
-            { id: 'skin_089', name: 'King Midas', icon: '🏆', price: 14000, color: 0xffd700, rarity: 'Legendary', shape: 'box', multiplier: 2.8, description: 'Everything it touches turns to gold.', features: 'pulsate' },
-            { id: 'skin_090', name: 'Solar Flare', icon: '☀️', price: 15000, color: 0xff4500, rarity: 'Legendary', shape: 'sphere', multiplier: 2.8, description: 'Burning hot. Watch your steps; gravity may fear you.', features: 'particles' },
-            { id: 'skin_091', name: 'Cybernetic Wisp', icon: '💡', price: 16000, color: 0x00eeff, rarity: 'Legendary', shape: 'sphere', multiplier: 2.8, description: 'A highly advanced, digitized light source.', features: 'pulsate' },
-            { id: 'skin_092', name: 'Phoenix Core', icon: '🔥', price: 17000, color: 0xffa500, rarity: 'Legendary', shape: 'box', multiplier: 2.9, description: 'The burning heart of the mythical bird.', features: 'particles' },
-            { id: 'skin_093', name: 'Atlantean Orb', icon: '🔱', price: 18000, color: 0x4169e1, rarity: 'Legendary', shape: 'sphere', multiplier: 2.9, description: 'The lost artifact of the sunken city.', features: 'transparency' },
-            { id: 'skin_094', name: 'Red Dragon Scale', icon: '🐲', price: 19000, color: 0x8b0000, rarity: 'Legendary', shape: 'box', multiplier: 2.9, description: 'Toughest material known to man.', features: 'pulsate' },
-            { id: 'skin_095', name: 'Zeus\' Bolt', icon: '⚡', price: 20000, color: 0xffff33, rarity: 'Legendary', shape: 'sphere', multiplier: 3.0, description: 'Raw lightning harnessed into a sphere.', features: 'particles' },
-            { id: 'skin_096', name: 'Odin\'s Rune', icon: '🧠', price: 20000, color: 0x999999, rarity: 'Legendary', shape: 'box', multiplier: 3.0, description: 'A box of perfect wisdom and speed.', features: 'none' },
-            { id: 'skin_097', name: 'Valkyrie Wing', icon: '😇', price: 21000, color: 0xeeeeff, rarity: 'Legendary', shape: 'sphere', multiplier: 3.0, description: 'Soft, white, feather-like momentum.', features: 'transparency' },
-            { id: 'skin_098', name: 'Hypercube', icon: '📦', price: 22000, color: 0x0000ff, rarity: 'Legendary', shape: 'box', multiplier: 3.0, description: 'A four-dimensional shape.', features: 'pulsate' },
-            { id: 'skin_099', name: 'Master Clockwork', icon: '⚙️', price: 23000, color: 0x8b4513, rarity: 'Legendary', shape: 'sphere', multiplier: 3.0, description: 'Perfectly engineered mechanism.', features: 'none' },
+        // Game Constants
+        const PLAYER_SIZE = 25;
+        const METEOR_GLOW_COLOR = '#ff4500';
+        const METEOR_BODY_COLOR = '#4a4a4a';
+        const HIT_SOUND_COOLDOWN = 50; // ms: Limit how fast the hit sound can play
 
-            // --- NEW MYTHIC SKINS (x3.1 - x4.0, Price 50000 - 100000) ---
-            { id: 'skin_100', name: 'Celestial Shard', icon: '🌟', price: 50000, color: 0xffcc00, rarity: 'Mythic', shape: 'box', multiplier: 3.1, description: 'A piece of a newborn star.', features: 'particles' },
-            { id: 'skin_101', name: 'Primal Chaos', icon: '💥', price: 60000, color: 0xff0000, rarity: 'Mythic', shape: 'sphere', multiplier: 3.3, description: 'Unstable, pure, and absolutely untamable energy.', features: 'pulsate' },
-            { id: 'skin_102', name: 'Infinite Void', icon: '⚫', price: 75000, color: 0x110033, rarity: 'Mythic', shape: 'box', multiplier: 3.5, description: 'Contains a pocket dimension of nothingness.', features: 'transparency' },
-            { id: 'skin_103', name: 'The Creator', icon: '🎨', price: 90000, color: 0xffffff, rarity: 'Mythic', shape: 'sphere', multiplier: 3.7, description: 'The white canvas upon which all levels are painted.', features: 'particles' },
-            { id: 'skin_104', name: 'Omni-Paradox', icon: '♾️', price: 100000, color: 0x00ffcc, rarity: 'Mythic', shape: 'box', multiplier: 4.0, description: 'Pure chaotic energy. The ultimate grind reward.', features: 'transparency' }
+        // Ship Leaning Constants
+        const ROTATION_SPEED = 0.15;
+        const MAX_ROTATION = Math.PI / 8;
+
+        // --- UPDATED SHIP DATA (With Damage) ---
+        const SHIP_DATA = [
+            // Default Ship (Always owned, 1x multiplier)
+            { id: 'default', name: 'Standard Vanguard', multiplier: 1, price: 0, rarity: 'Standard', color: '#40e0d0', glow: '#00ffff', engineColor: '#ff6600', particleType: 0, damage: 1 },
+            // Purchasable Ships 
+            { id: 'viper', name: 'Crimson Viper', multiplier: 2, price: 30, rarity: 'Uncommon', color: '#8b0000', glow: '#ff0000', engineColor: '#ff4500', particleType: 1, damage: 2 },
+            { id: 'ghost', name: 'Phantom Cloak', multiplier: 3, price: 100, rarity: 'Rare', color: '#9400d3', glow: '#ee82ee', engineColor: '#9400d3', particleType: 2, damage: 5 },
+            { id: 'titan', name: 'Aether Titan', multiplier: 4, price: 250, rarity: 'Epic', color: '#daa520', glow: '#ffff00', engineColor: '#daa520', particleType: 1, damage: 10 },
+            { id: 'quantum', name: 'Quantum Core', multiplier: 5, price: 500, rarity: 'Legendary', color: '#ffffff', glow: '#00bfff', engineColor: '#00ffff', particleType: 3, damage: 20 },
+            { id: 'ultimate', name: 'Nebula Sovereign', multiplier: 6, price: 1000, rarity: 'Mythic', color: '#39ff14', glow: '#39ff14', engineColor: '#39ff14', particleType: 2, damage: 40 }
         ];
 
-        // --- SKIN STATE VARIABLES ---
-        let purchasedSkins = ['skin_001']; // Starter skin is always owned
-        let currentSkinId = 'skin_001';
-        let pulsationTime = 0;
-        // Particle system variables
-        let playerParticleSystem = null;
-        const PARTICLE_COUNT = 100;
-        let particleVelocities = []; // Stores velocity vectors for each particle
-        const PARTICLE_LIFETIME = 120; // Max frame count for particle life
-        let particleAges = []; // Current age of each particle
-        // --------------------------
+        // Game State
+        let gameRunning = false;
+        let player = { x: 0, y: 0, dx: 0, dy: 0, speed: 5, rotation: 0, particles: [] }; 
+        let balls = [];
+        let projectiles = []; // NEW: Array for player projectiles
+        let score = 0;
+        let lastTime = 0;
+        let spawnTimer = 0;
+        let ballSpeedFactor = 1.0;
+        let spawnInterval = 1000; // milliseconds
         
-        // --- JUMP BUFFERING VARIABLES ---
-        const JUMP_BUFFER_DURATION = 8; 
-        let jumpBufferTimer = 0; 
-        // ---------------------------------
+        let coins = 0; // Persistent coin total
+        let sessionCoins = 0; // Coins earned in the current session
+        let lastCoinUpdateTime = 0; // To track time for coin earning
+        let equippedShipId = 'default'; // New state
+        let ownedShipIds = ['default']; // New state
+        let lastHitSoundTime = 0; // NEW: Track last hit sound play time
 
-        // New control and state variables
-        let isPaused = true;
-        let isTransitioning = false; 
-        const sensitivity = 0.002; 
-
-        // Global variables for Firebase compliance (not used in this self-contained game)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        // End compliance variables
-
-        // --- Audio Variables ---
-        let jumpSynth;
-        let winSynth;
-        let deathSynth; 
-        let bgmSynth;   
-        let audioInitialized = false;
-
-        // --- Core Functions ---
-
-        function init() {
-            // Scene setup
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); 
-
-            // Camera setup
-            const container = document.getElementById('game-container');
-            const aspect = container.clientWidth / container.clientHeight;
-            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-
-            // Renderer setup
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            container.appendChild(renderer.domElement);
-
-            // Lighting 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); 
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); 
-            directionalLight.position.set(50, 100, 50).normalize(); 
-            scene.add(directionalLight);
-
-            createPlayer(); 
-            generateNewLevel(); 
-            updateCoinDisplay(); 
-
-            updateCamera();
-
-            // --- Control and Pointer Lock Setup ---
-            document.addEventListener('pointerlockchange', lockChangeAlert, false);
-            document.addEventListener('pointerlockerror', (e) => console.error("PointerLock Error:", e), false);
-            document.addEventListener('mousemove', onMouseMove, false);
-            
-            // Click on the game screen to lock the pointer and start the game
-            renderer.domElement.addEventListener('click', async () => {
-                await startAudio(); 
-                initAudio(); 
-                
-                if (isPaused && !isTransitioning && document.getElementById('shop-modal').classList.contains('hidden')) {
-                    renderer.domElement.requestPointerLock();
-                }
-            }, false);
-
-            window.addEventListener('keydown', onKeyDown, false);
-            window.addEventListener('keyup', onKeyUp, false);
-            window.addEventListener('resize', onWindowResize, false);
-
-            // --- Shop Event Listeners ---
-            document.getElementById('open-shop-btn').addEventListener('click', toggleShop);
-            document.getElementById('close-shop-btn').addEventListener('click', toggleShop);
-        }
+        // Key/Input state
+        let keys = {};
         
-        /**
-         * Updates the coin display in the top right corner.
-         */
-        function updateCoinDisplay() {
-            document.getElementById('coin-display').textContent = `💰 ${coinCount}`;
-        }
+        // --- Tone.js Sound Setup ---
+        
+        const bpm = 128;
+        let isToneInitialized = false;
 
-        // Function to start audio context (must be called on user interaction)
-        async function startAudio() {
-            if (Tone.context.state !== 'running') {
-                try {
-                    await Tone.start();
-                } catch (e) {
-                    console.error("Tone.js context failed to start:", e);
-                }
+        // Synths for Music
+        const padSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sawtooth" },
+            envelope: { attack: 0.5, decay: 0.1, sustain: 0.9, release: 0.8 },
+            volume: -15
+        }).toDestination();
+        const bassSynth = new Tone.MonoSynth({
+            oscillator: { type: "square" },
+            envelope: { attack: 0.005, decay: 0.2, sustain: 0.01, release: 0.1 },
+            filterEnvelope: { attack: 0.06, decay: 0.02, sustain: 0.5, release: 2, basePath: 200, octaves: 4 },
+            volume: -8
+        }).toDestination();
+        const kick = new Tone.MembraneSynth({
+            volume: -3, pitchDecay: 0.05, octaves: 5, envelope: { attack: 0.01, decay: 0.3, sustain: 0.01, release: 0.8 }
+        }).toDestination();
+        const snare = new Tone.NoiseSynth({
+            noise: { type: 'pink' },
+            envelope: { attack: 0.001, decay: 0.2, sustain: 0.01, release: 0.1 },
+            volume: -10
+        }).toDestination();
+
+        // Game Over/Hit Sound (Noise)
+        const noiseSynth = new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.001, decay: 0.15, sustain: 0.01, release: 0.15 }
+        }).toDestination();
+
+        // NEW: Laser Sound
+        const laserSynth = new Tone.Synth({
+            oscillator: { type: "square" },
+            envelope: { attack: 0.005, decay: 0.1, sustain: 0.0, release: 0.1 },
+            volume: -15 // Lower volume slightly
+        }).toDestination();
+
+        // NEW: Meteor Hit Sound
+        const hitSynth = new Tone.MembraneSynth({
+            volume: -18, pitchDecay: 0.01, octaves: 2, envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.05 }
+        }).toDestination();
+
+        // Music Loop State
+        const chords = [
+            ["C3", "E3", "G3"], // C Major
+            ["G3", "B3", "D4"], // G Major
+            ["Am3", "C4", "E4"],// A minor
+            ["F3", "A3", "C4"]  // F Major
+        ];
+        const bassline = ["C2", "G2", "A2", "F2"]; // Roots
+
+        let chordLoop = null;
+        let bassLoop = null;
+        let drumLoop = null;
+
+        function initializeTone() {
+            if (!isToneInitialized) { 
+                Tone.start(); 
+                Tone.Transport.bpm.value = bpm;
+                isToneInitialized = true; 
             }
         }
-
-        function initAudio() {
-            if (audioInitialized) return;
-
-            jumpSynth = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: "square" }, 
-                envelope: { attack: 0.005, decay: 0.1, sustain: 0.0, release: 0.1 },
-                volume: -10 
-            }).toDestination();
-
-            winSynth = new Tone.MembraneSynth({
-                pitchDecay: 0.05,
-                octaves: 8,
-                envelope: { attack: 0.001, decay: 0.5, sustain: 0.01, release: 0.5 },
-                volume: -5 
-            }).toDestination();
+        
+        function startMusic() {
+            stopMusic(); // Clear any existing loops
             
-            deathSynth = new Tone.NoiseSynth({
-                noise: { type: 'pink' },
-                envelope: { attack: 0.001, decay: 0.4, sustain: 0.0, release: 0.1 },
-                volume: -8
-            }).chain(new Tone.Filter(300, 'lowpass').toDestination());
+            // Chord Pad Loop (4/4 timing, every 1 measure)
+            chordLoop = new Tone.Loop(time => {
+                const index = chordLoop.index % chords.length;
+                padSynth.triggerAttackRelease(chords[index], "1m", time);
+            }, "1m").start(0);
 
-            const bassSynth = new Tone.MonoSynth({
-                oscillator: { type: "square" },
-                envelope: { attack: 0.05, decay: 0.1, sustain: 0.1, release: 0.2 },
-                volume: -27 
-            }).toDestination();
+            // Bass Loop (4/4 timing, 8th notes, playing each root for two 8th notes)
+            bassLoop = new Tone.Sequence((time, note) => {
+                bassSynth.triggerAttackRelease(note, "8n", time);
+            }, bassline.flatMap(root => [root, root, root, root, root, root, root, root]), "8n").start(0);
+            bassLoop.playbackRate = 0.5;
 
-            const pulseSynth = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: "sawtooth" },
-                envelope: { attack: 0.01, decay: 0.1, sustain: 0.05, release: 0.2 },
-                volume: -23 
-            }).toDestination();
-            
-            const kickSynth = new Tone.MembraneSynth({
-                envelope: { attack: 0.001, decay: 0.4, sustain: 0.001, release: 0.6 },
-                octaves: 10,
-                volume: -10 
-            }).toDestination();
-
-            const snareSynth = new Tone.NoiseSynth({
-                noise: { type: 'white' },
-                envelope: { attack: 0.001, decay: 0.1, sustain: 0.0, release: 0.05 },
-                volume: -15 
-            }).toDestination();
-
-            bgmSynth = { bass: bassSynth, pulse: pulseSynth, kick: kickSynth, snare: snareSynth }; 
-            startMusicLoop(); 
-            audioInitialized = true;
-        }
-
-        function startMusicLoop() {
-            if (!bgmSynth || !bgmSynth.bass) return;
-
-            Tone.Transport.bpm.value = 140; 
-
-            const drumSequence = new Tone.Sequence((time, step) => {
-                if (step === 0 || step === 4) { bgmSynth.kick.triggerAttackRelease("C1", "8n", time); }
-                if (step === 2 || step === 6) { bgmSynth.snare.triggerAttackRelease("8n", time); }
-            }, [0, 1, 2, 3, 4, 5, 6, 7], "8n"); 
-
-            drumSequence.loop = true;
-            drumSequence.start(0);
-
-            const harmonyProgression = ["C2", "G2", "A2", "E2", "F2", "C2", "F2", "G2"]; 
-            const harmonySequence = new Tone.Sequence((time, note) => {
-                bgmSynth.bass.triggerAttackRelease(note, "1m", time);
-            }, harmonyProgression, "1m"); 
-
-            harmonySequence.loop = true;
-            harmonySequence.start(0);
-
-            const patternA = [
-                ["0:0:0", "C4"], ["0:0:1", "E4"], ["0:0:2", "G4"], ["0:0:3", "C5"],
-                ["0:1:0", "B4"], ["0:1:1", "G4"], ["0:1:2", "E4"], ["0:1:3", "C4"],
-                ["0:2:0", "E4"], ["0:2:1", "G4"], ["0:2:2", "C5"], ["0:2:3", "G4"],
-                ["0:3:0", "E4"], ["0:3:1", "C4"], ["0:3:2", "G3"], ["0:3:3", "E3"]
-            ];
-            const patternB = [
-                ["0:0:0", "G4"], ["0:0:2", "A4"], 
-                ["0:1:2", "G4"], 
-                ["0:2:0", "F4"], ["0:2:2", "G4"],
-                ["0:3:0", "E4"]
-            ];
-            const patternC = [
-                ["0:0:0", "G4"], ["0:1:0", "F4"], ["0:2:0", "E4"], ["0:3:0", "C4"] 
-            ];
-
-            const melodySequence = new Tone.Sequence((time, patternIndex) => {
-                let pattern;
-                let noteDuration = "16n"; 
-                
-                switch(patternIndex) {
-                    case 0: pattern = patternA; noteDuration = "16n"; break; 
-                    case 1: pattern = patternB; noteDuration = "8n"; break;  
-                    case 2: pattern = patternA; noteDuration = "16n"; break; 
-                    case 3: pattern = patternC; noteDuration = "1m"; break;  
+            // Drum Loop (4/4 timing)
+            drumLoop = new Tone.Sequence((time, step) => {
+                if (step % 4 === 0) { // Kick on 1, 2, 3, 4
+                    kick.triggerAttackRelease("C1", "8n", time);
                 }
-                
-                const phrase = new Tone.Part((t, note) => {
-                    let duration = (patternIndex === 3) ? "3n" : noteDuration;
-                    
-                    if (patternIndex === 3) {
-                         bgmSynth.pulse.triggerAttackRelease(note, "3n", t); 
-                    } else {
-                         bgmSynth.pulse.triggerAttackRelease(note, duration, t);
-                    }
-                    
-                }, pattern);
-
-                phrase.start(time); 
-                phrase.stop(time + '1m'); 
-
-            }, [0, 1, 2, 3], "4m"); 
-
-            melodySequence.loop = true;
-            melodySequence.start(0);
+                if (step === 4 || step === 12) { // Snare on 2 and 4
+                    snare.triggerAttackRelease("16n", time, 0.7);
+                }
+            }, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "16n").start(0);
 
             Tone.Transport.start();
         }
 
-        function playJumpSound() {
-            if (!audioInitialized) return;
-            jumpSynth.triggerAttackRelease("C4", "8n");
-        }
-
-        function playWinSound() {
-            if (!audioInitialized) return;
-            const now = Tone.now();
-            const chord = ["C5", "E5", "G5", "C6"];
-            chord.forEach((note, index) => {
-                winSynth.triggerAttackRelease(note, "8n", now + index * 0.05);
-            });
+        function stopMusic() {
+            if (chordLoop) { chordLoop.stop(); chordLoop.dispose(); chordLoop = null; }
+            if (bassLoop) { bassLoop.stop(); bassLoop.dispose(); bassLoop = null; }
+            if (drumLoop) { drumLoop.stop(); drumLoop.dispose(); drumLoop = null; }
+            Tone.Transport.stop();
         }
         
-        function playDeathSound() {
-             if (!audioInitialized) return;
-             deathSynth.triggerAttack();
-             deathSynth.triggerRelease(Tone.now() + 0.3);
+        function playStartSound() { 
+            padSynth.triggerAttackRelease(["C4", "E4"], "8n");
+            padSynth.triggerAttackRelease(["G4", "C5"], "8n", "+0.15"); 
         }
-
-        function executeJump() {
-            if (player.isGrounded && !isPaused && !isTransitioning) {
-                playerVelocity.y = jumpPower;
-                player.isGrounded = false;
-                playJumpSound();
-            }
-        }
-
-        function createPlayer() {
-            player = new THREE.Group();
-            scene.add(player);
-            
-            // Player's bounding body is a fixed sphere regardless of skin appearance
-            player.userData.yOffsetToFeet = PLAYER_RADIUS; 
-            player.isGrounded = false;
-
-            // Initialize the player with the default skin
-            updatePlayerSkin(getSkinDetails(currentSkinId));
-        }
-
-        /**
-         * Cleans up the old skin mesh and particle system and applies the new skin.
-         */
-        function updatePlayerSkin(skinDetails) {
-            // 1. Clean up old mesh and particles
-            if (playerMesh) {
-                player.remove(playerMesh);
-                playerMesh.geometry.dispose();
-                if (playerMesh.material.length) {
-                    playerMesh.material.forEach(m => m.dispose());
-                } else {
-                    playerMesh.material.dispose();
-                }
-                playerMesh = null;
-            }
-            if (playerParticleSystem) {
-                scene.remove(playerParticleSystem);
-                playerParticleSystem.geometry.dispose();
-                playerParticleSystem.material.dispose();
-                playerParticleSystem = null;
-            }
-            
-            // 2. Create New Mesh (Geometry and Material)
-            let geometry;
-            if (skinDetails.shape === 'box') {
-                 geometry = new THREE.BoxGeometry(PLAYER_SCALE * 2, PLAYER_SCALE * 2, PLAYER_SCALE * 2); 
-            } else {
-                 geometry = new THREE.SphereGeometry(PLAYER_SCALE, 32, 16); 
-            }
-            
-            let material;
-            if (skinDetails.features === 'pulsate') {
-                // Pulsate: Start with a basic Lambert material with emissive properties
-                material = new THREE.MeshLambertMaterial({ color: skinDetails.color, emissive: skinDetails.color, emissiveIntensity: 0.1 });
-            } else if (skinDetails.features === 'transparency') {
-                // Transparency: Transparent and slightly darker color
-                material = new THREE.MeshLambertMaterial({ 
-                    color: skinDetails.color, 
-                    transparent: true, 
-                    opacity: 0.6,
-                    emissive: skinDetails.color,
-                    emissiveIntensity: 0.05 
-                });
-            } else {
-                // Basic Runner / Aqua Prism / Particles: Standard
-                material = new THREE.MeshLambertMaterial({ color: skinDetails.color }); 
-            }
-
-            playerMesh = new THREE.Mesh(geometry, material);
-            playerMesh.position.y = 0; // Relative to the player group's pivot point
-            player.add(playerMesh);
-            
-            // 3. Create Particle System 
-            if (skinDetails.features === 'particles') {
-                 initParticles(skinDetails.color);
-            }
+        function playGameOverSound() { 
+            noiseSynth.triggerAttackRelease("2n", Tone.now(), 0.5); 
+            stopMusic(); 
         }
         
-        /**
-         * Initializes a particle system attached to the player.
-         */
-        function initParticles(color) {
-            const positions = new Float32Array(PARTICLE_COUNT * 3);
-            const ages = new Float32Array(PARTICLE_COUNT);
-            particleVelocities = [];
-            particleAges = [];
-            
-            const pGeometry = new THREE.BufferGeometry();
-            pGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
-            pGeometry.setAttribute('age', new THREE.BufferAttribute(ages, 1).setUsage(THREE.DynamicDrawUsage));
-
-            const pMaterial = new THREE.PointsMaterial({
-                color: color,
-                size: 0.05,
-                blending: THREE.AdditiveBlending,
-                transparent: true,
-                depthWrite: false, // Prevents Z-fighting with player mesh
-                opacity: 0.5
-            });
-
-            playerParticleSystem = new THREE.Points(pGeometry, pMaterial);
-            scene.add(playerParticleSystem);
-
-            // Initialize all particles to be hidden and assign random velocities
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                positions[i * 3 + 0] = 0; // X
-                positions[i * 3 + 1] = -100; // Y (hidden)
-                positions[i * 3 + 2] = 0; // Z
-                
-                particleVelocities.push(new THREE.Vector3(
-                    THREE.MathUtils.randFloat(-0.01, 0.01), // Small random horizontal velocity
-                    THREE.MathUtils.randFloat(0.01, 0.03),  // Consistent upward velocity
-                    THREE.MathUtils.randFloat(-0.01, 0.01)
-                ));
-                particleAges.push(PARTICLE_LIFETIME); // Start with max age so they are initially hidden
+        // NEW: Laser and Hit Sounds
+        function playLaserSound() {
+            laserSynth.triggerAttackRelease("C5", "16n");
+        }
+        function playHitSound() {
+            const currentTime = performance.now();
+            // Implement cooldown check to prevent Tone.js timing errors
+            if (currentTime - lastHitSoundTime < HIT_SOUND_COOLDOWN) {
+                return;
             }
-            pGeometry.attributes.position.needsUpdate = true;
+            hitSynth.triggerAttackRelease("C3", "32n");
+            lastHitSoundTime = currentTime; // Update the timestamp
+        }
+        // --- END Tone.js Music/Sound Setup ---
+
+
+        // --- Firebase Functions ---
+
+        // Returns the document reference for the user's private game data
+        function getCoinDocRef() {
+            if (!userId) {
+                console.error("Attempted to access Firestore before user ID is set.");
+                return null;
+            }
+            // Private data path: /artifacts/{appId}/users/{userId}/gameData/coinData
+            return doc(db, 'artifacts', appId, 'users', userId, 'gameData', 'coinData');
         }
 
-        /**
-         * Updates the position and state of the particles.
-         */
-        function updateParticles() {
-            if (!playerParticleSystem || !playerMesh || isPaused) return;
+        async function loadCoins() {
+            if (!isAuthReady || !userId) {
+                console.warn("Authentication not ready. Cannot load coins.");
+                return;
+            }
+            try {
+                const docRef = getCoinDocRef();
+                const docSnap = await getDoc(docRef);
 
-            const positions = playerParticleSystem.geometry.attributes.position.array;
-            const ages = playerParticleSystem.geometry.attributes.age.array;
-            
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                const age = particleAges[i];
-
-                if (age >= PARTICLE_LIFETIME) {
-                    // Particle died, reset it to player position (spawn new particle)
-                    const spawnOffset = 0.05;
-                    positions[i * 3 + 0] = player.position.x + THREE.MathUtils.randFloat(-spawnOffset, spawnOffset);
-                    positions[i * 3 + 1] = player.position.y - PLAYER_RADIUS; // Spawn at the bottom of the player
-                    positions[i * 3 + 2] = player.position.z + THREE.MathUtils.randFloat(-spawnOffset, spawnOffset);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    coins = data.totalCoins || 0;
+                    equippedShipId = data.equippedShipId || 'default';
+                    ownedShipIds = data.ownedShipIds || ['default'];
                     
-                    particleAges[i] = 0;
-                    // Reset opacity for the new particle
-                    playerParticleSystem.geometry.attributes.age.setX(i, 0);
-
-                } else {
-                    // Update position
-                    const velocity = particleVelocities[i];
-                    positions[i * 3 + 0] += velocity.x;
-                    positions[i * 3 + 1] += velocity.y;
-                    positions[i * 3 + 2] += velocity.z;
-
-                    // Update age
-                    particleAges[i]++;
-                    
-                    // Update the 'age' attribute to control shader effects (like fade)
-                    playerParticleSystem.geometry.attributes.age.setX(i, age / PARTICLE_LIFETIME);
-                }
-            }
-
-            playerParticleSystem.geometry.attributes.position.needsUpdate = true;
-            playerParticleSystem.geometry.attributes.age.needsUpdate = true;
-        }
-
-
-        /**
-         * Creates a flag mesh (pole + fabric) for the finish line.
-         */
-        function createFinishFlag(position) {
-            const flagGroup = new THREE.Group();
-            const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 5, 8); 
-            const poleMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff }); 
-            const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-            pole.position.y = 2.5; 
-            flagGroup.add(pole);
-
-            const flagGeometry = new THREE.PlaneGeometry(2, 1.5); 
-            const flagMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00, side: THREE.DoubleSide }); 
-            const flag = new THREE.Mesh(flagGeometry, flagMaterial);
-            
-            flag.position.set(1.0, 4.0, 0); 
-            flagGroup.add(flag);
-
-            flagGroup.position.copy(position);
-            return flagGroup;
-        }
-
-        /**
-         * Clears the current level and generates a new, random parkour course.
-         */
-        function generateNewLevel() {
-            levelCounter++;
-            document.getElementById('level-display').textContent = `Level ${levelCounter}`;
-
-            // 1. Clear existing platforms, finish line, and flag
-            for (const platform of platforms) {
-                scene.remove(platform);
-                platform.geometry.dispose();
-                platform.material.dispose();
-            }
-            platforms = [];
-            if (finishLine) {
-                scene.remove(finishLine);
-                finishLine.geometry.dispose();
-                finishLine.material.dispose();
-                finishLine = null;
-            }
-            if (finishFlag) { 
-                scene.remove(finishFlag);
-                finishFlag = null; 
-            }
-            
-            // 2. Set constants for generation
-            const PLATFORM_COUNT = 5 + levelCounter * 2; 
-            let currentPlatform = null;
-            const MAIN_PLATFORM_COLOR = 0x228B22; // Dark Green 
-            
-            // Start Platform 
-            currentPlatform = addPlatform(0, 0, 0, 10, 1, 10, MAIN_PLATFORM_COLOR); 
-
-            // 3. Generate path
-            for (let i = 0; i < PLATFORM_COUNT; i++) {
-                const lastY = currentPlatform.position.y;
-                const lastH = currentPlatform.geometry.parameters.height;
-                
-                const stepX = THREE.MathUtils.randFloat(3.0 + Math.min(levelCounter * 0.1, 1.5), 4.5);
-                const heightDiff = THREE.MathUtils.randFloat(-2.0, 1.5);
-
-                const newW = THREE.MathUtils.randFloat(2.0, 4); 
-                const newH = THREE.MathUtils.randFloat(0.5, 1);
-                const newD = THREE.MathUtils.randFloat(2.0, 4); 
-
-                let newY = lastY + lastH / 2 + newH / 2 + heightDiff;
-                newY = Math.max(0.5, newY); 
-                
-                const newX = currentPlatform.position.x + stepX;
-                const newZ = currentPlatform.position.z + THREE.MathUtils.randFloat(-4.0, 4.0);
-                
-                currentPlatform = addPlatform(newX, newY, newZ, newW, newH, newD, MAIN_PLATFORM_COLOR);
-            }
-            
-            // 4. Place Finish Line
-            finishLine = addPlatform(
-                currentPlatform.position.x, 
-                currentPlatform.position.y + currentPlatform.geometry.parameters.height / 2 + 0.25, 
-                currentPlatform.position.z, 
-                5, 0.5, 5, MAIN_PLATFORM_COLOR 
-            );
-            finishLine.userData.isFinish = true;
-            
-            // 5. Add the flag
-            finishFlag = createFinishFlag(new THREE.Vector3(
-                finishLine.position.x,
-                finishLine.position.y + finishLine.geometry.parameters.height / 2, 
-                finishLine.position.z
-            ));
-            scene.add(finishFlag);
-
-
-            // 6. Reset player
-            resetPlayer();
-
-            // 7. Update message box if game is running
-            if (!isPaused && levelCounter > 1) {
-                showMessageBox(`Level ${levelCounter} Generated!`, "New course loaded. Get ready for a challenge!", false, true);
-            }
-        }
-
-        function addPlatform(x, y, z, w, h, d, color) {
-            const geometry = new THREE.BoxGeometry(w, h, d);
-            const material = new THREE.MeshLambertMaterial({ color: color });
-            const platform = new THREE.Mesh(geometry, material);
-            platform.position.set(x, y, z);
-            scene.add(platform);
-            platforms.push(platform);
-            platform.userData.boundingBox = new THREE.Box3().setFromObject(platform);
-            return platform;
-        }
-
-        // --- Shop Functions ---
-
-        function getSkinDetails(id) {
-            return SKINS.find(s => s.id === id);
-        }
-
-        /**
-         * Toggles the shop modal open and closed.
-         */
-        function toggleShop() {
-            const modal = document.getElementById('shop-modal');
-            const isShopOpen = !modal.classList.contains('hidden');
-            
-            if (isShopOpen) {
-                // CLOSING shop
-                modal.classList.add('hidden');
-                
-                // UX Improvement: Automatically request pointer lock to resume game
-                renderer.domElement.requestPointerLock();
-                
-                if (audioInitialized) Tone.Transport.start(); 
-            } else {
-                // OPENING shop
-                modal.classList.remove('hidden');
-                isPaused = true;
-                
-                // Exit pointer lock if active
-                if (document.pointerLockElement === renderer.domElement) {
-                    document.exitPointerLock(); 
-                }
-                
-                renderShopContent();
-                if (audioInitialized) Tone.Transport.pause();
-            }
-        }
-        
-        function renderShopContent() {
-            const container = document.getElementById('skin-list-container');
-            container.innerHTML = '';
-            
-            SKINS.forEach(skin => {
-                const isOwned = purchasedSkins.includes(skin.id);
-                const isEquipped = currentSkinId === skin.id;
-                
-                const card = document.createElement('div');
-                card.className = `skin-card ${isEquipped ? 'selected' : ''}`;
-                card.id = `skin-card-${skin.id}`;
-                
-                let buttonHTML;
-
-                if (isEquipped) {
-                    buttonHTML = '<div class="equipped-label">EQUIPPED</div>';
-                } else if (isOwned) {
-                    buttonHTML = `<button class="buy-button" onclick="selectSkin('${skin.id}')" style="background-color: #00ff7f;">EQUIP</button>`;
-                } else {
-                    buttonHTML = `<button class="buy-button" onclick="buySkin('${skin.id}', event)">BUY 💰 ${skin.price}</button>`;
-                }
-                
-                if (isOwned && !isEquipped) {
-                     card.style.cursor = 'pointer';
-                     card.onclick = () => selectSkin(skin.id);
-                }
-
-                const skinColorHex = `#${skin.color.toString(16).padStart(6, '0')}`;
-
-                card.innerHTML = `
-                    <div class="skin-rarity rarity-${skin.rarity}">${skin.rarity.toUpperCase()}</div>
-                    <div class="skin-icon" style="color:${skinColorHex};">${skin.icon}</div>
-                    <div class="skin-name">${skin.name}</div>
-                    <div class="skin-desc">${skin.description}</div>
-                    <div class="skin-multiplier">Reward Multiplier: x${skin.multiplier.toFixed(1)}</div>
-                    ${buttonHTML}
-                `;
-                
-                container.appendChild(card);
-            });
-        }
-
-        function buySkin(skinId, event) {
-            event.stopPropagation();
-            const skin = getSkinDetails(skinId);
-            
-            if (coinCount >= skin.price) {
-                coinCount -= skin.price;
-                purchasedSkins.push(skinId);
-                updateCoinDisplay();
-                selectSkin(skinId); 
-                
-                showMessageBox("Purchase Successful!", `${skin.name} purchased and equipped! Coins left: 💰 ${coinCount}`, false, true);
-                renderShopContent(); 
-            } else {
-                showMessageBox("Not Enough Coins", `You need 💰 ${skin.price} for the ${skin.name}. You only have 💰 ${coinCount}.`, false, true);
-            }
-        }
-
-        function selectSkin(skinId) {
-            if (!purchasedSkins.includes(skinId) || currentSkinId === skinId) return;
-
-            // Remove selected class from previous card
-            const oldCard = document.getElementById(`skin-card-${currentSkinId}`);
-            if (oldCard) oldCard.classList.remove('selected');
-            
-            // Set new skin
-            currentSkinId = skinId;
-            updatePlayerSkin(getSkinDetails(skinId));
-            
-            // Add selected class to new card and re-render button states
-            renderShopContent(); 
-        }
-        
-        // --- Event Handlers ---
-
-        function onWindowResize() {
-            const container = document.getElementById('game-container');
-            const newWidth = container.clientWidth;
-            const newHeight = container.clientHeight;
-
-            camera.aspect = newWidth / newHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(newWidth, newHeight);
-        }
-
-        // Handles mouse movement for camera/player rotation
-        function onMouseMove(event) {
-            if (isPaused) return;
-            const rotationDeltaX = event.movementX * sensitivity;
-            player.rotation.y -= rotationDeltaX; 
-        }
-
-        // Toggles pause state based on pointer lock status
-        function lockChangeAlert() {
-            if (document.pointerLockElement === renderer.domElement) {
-                // Pointer Locked: Game is running
-                if (document.getElementById('shop-modal').classList.contains('hidden')) {
-                     isPaused = false;
-                     // Explicitly hide the message box on successful lock
-                     document.getElementById('message-box').classList.add('hidden'); 
-                } else {
-                    document.exitPointerLock(); 
-                }
-            } else {
-                // Pointer Unlocked: Game is paused
-                isPaused = true;
-                
-                const box = document.getElementById('message-box');
-                const titleElement = box.querySelector('.message-title');
-                
-                const isFinalMessage = titleElement.textContent.includes("COMPLETE") || titleElement.textContent.includes("Ready");
-                
-                // Only show the Click to Resume message if not currently displaying a win/loss/shop message
-                if (!isFinalMessage && document.getElementById('shop-modal').classList.contains('hidden')) {
-                   showMessageBox("Game Paused", "Press ESC to resume or click anywhere on the game screen.", false, false);
-                }
-            }
-        }
-
-        function showMessageBox(title, subtitle, isFinish, autoHide = false) {
-            const box = document.getElementById('message-box');
-            const titleElement = box.querySelector('.message-title');
-            
-            titleElement.textContent = title;
-            box.querySelector('.message-subtitle').textContent = subtitle;
-
-            if (isFinish) {
-                titleElement.classList.add('win-color');
-            } else {
-                titleElement.classList.remove('win-color');
-            }
-
-            box.classList.remove('hidden');
-
-            if (autoHide) {
-                 setTimeout(() => {
-                    if (!isPaused && box.textContent.includes(title)) { 
-                        box.classList.add('hidden');
+                    // Sanity check: ensure the equipped ship is actually owned
+                    if (!ownedShipIds.includes(equippedShipId)) {
+                        equippedShipId = 'default';
+                        ownedShipIds = ['default'];
                     }
-                 }, 3000); 
+                } else {
+                    // Initialize document if it doesn't exist
+                    await setDoc(docRef, { totalCoins: 0, equippedShipId: 'default', ownedShipIds: ['default'] });
+                    coins = 0;
+                    equippedShipId = 'default';
+                    ownedShipIds = ['default'];
+                    console.log("Coin data initialized.");
+                }
+            } catch (error) {
+                console.error("Error loading coins:", error);
+            }
+            updateCoinDisplay();
+        }
+
+        async function saveCoins() {
+            if (!isAuthReady || !userId) {
+                console.error("Authentication not ready. Cannot save coins.");
+                return;
+            }
+            try {
+                const docRef = getCoinDocRef();
+                await setDoc(docRef, { 
+                    totalCoins: coins,
+                    equippedShipId: equippedShipId,
+                    ownedShipIds: ownedShipIds
+                }, { merge: true });
+                console.log("Game state saved successfully. Coins:", coins, "Ship:", equippedShipId);
+            } catch (error) {
+                console.error("Error saving game state:", error);
             }
         }
 
-        function onKeyDown(event) {
-            keys[event.code] = true;
+        function updateCoinDisplay() {
+             coinDisplay.textContent = `COINS: ${coins + sessionCoins}`;
+             if (document.getElementById('shopCoinBalance')) {
+                 document.getElementById('shopCoinBalance').textContent = coins;
+             }
+        }
+
+        // --- Shop Logic ---
+
+        // FIX: Expose shop functions globally so they can be called from dynamically generated HTML
+        window.attemptPurchase = attemptPurchase;
+        window.equipShip = equipShip;
+
+        function showShop() {
+            if (!isAuthReady) return;
+            standardOverlay.style.display = 'none';
+            shopContainer.style.display = 'grid';
+            overlay.style.display = 'flex';
+            overlay.classList.add('game-over-visible');
+            renderShop();
+            updateCoinDisplay();
+        }
+
+        function renderShop() {
+            shipList.innerHTML = ''; // Clear previous cards
+
+            SHIP_DATA.forEach(ship => {
+                const isOwned = ownedShipIds.includes(ship.id);
+                const isEquipped = equippedShipId === ship.id;
+
+                let buttonText = 'EQUIP';
+                let buttonClasses = 'px-3 py-1 text-sm rounded-full font-bold transition-all';
+                let action = `equipShip('${ship.id}')`;
+                
+                if (!isOwned) {
+                    buttonText = `BUY - ${ship.price} COINS`;
+                    buttonClasses += ' bg-yellow-500 hover:bg-yellow-400 text-gray-900 shadow-lg shadow-yellow-700/50';
+                    action = `attemptPurchase('${ship.id}', ${ship.price})`;
+                } else if (isEquipped) {
+                    buttonText = 'EQUIPPED';
+                    buttonClasses += ' bg-green-500 opacity-80 cursor-default text-gray-900 shadow-lg shadow-green-700/50';
+                    action = '';
+                } else {
+                    buttonClasses += ' bg-cyan-500 hover:bg-cyan-400 text-gray-900 shadow-lg shadow-cyan-700/50';
+                }
+
+                // Determine rarity color
+                let rarityColor = 'text-gray-400';
+                if (ship.rarity === 'Uncommon') rarityColor = 'text-green-400';
+                else if (ship.rarity === 'Rare') rarityColor = 'text-blue-400';
+                else if (ship.rarity === 'Epic') rarityColor = 'text-purple-400';
+                else if (ship.rarity === 'Legendary') rarityColor = 'text-yellow-400';
+                else if (ship.rarity === 'Mythic') rarityColor = 'text-pink-400';
+
+
+                const card = document.createElement('div');
+                card.className = `ship-card ${isEquipped ? 'equipped' : ''}`;
+                // Add custom attribute for glow CSS styling
+                card.setAttribute('data-glow-color', ship.glow); 
+                card.innerHTML = `
+                    <h3 class="text-2xl font-bold ${rarityColor} mb-1">${ship.name}</h3>
+                    <p class="text-sm ${rarityColor} italic mb-2">(${ship.rarity})</p>
+
+                    <!-- Ship Preview Circle -->
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 border-2 border-white/20" 
+                         style="background-color: ${ship.color}; box-shadow: 0 0 20px ${ship.glow}, inset 0 0 8px white;">
+                        <!-- Simple icon to represent the ship -->
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: ${ship.engineColor};">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </div>
+
+                    <p class="text-white text-lg font-mono mb-1">Multiplier: <span class="text-cyan-400">${ship.multiplier}x</span></p>
+                    <p class="text-white text-lg font-mono mb-4">Damage: <span class="text-red-400">${ship.damage}</span></p>
+
+                    <button onclick="${action}" class="${buttonClasses}" ${isEquipped ? 'disabled' : ''}>
+                        ${buttonText}
+                    </button>
+                    <p id="msg-${ship.id}" class="text-xs text-red-400 mt-2 h-4"></p>
+                `;
+                shipList.appendChild(card);
+            });
+        }
+
+        function attemptPurchase(shipId, price) {
+            if (coins >= price) {
+                coins -= price;
+                ownedShipIds.push(shipId);
+                equipShip(shipId); // Automatically equip after purchase
+                saveCoins();
+                
+                // Show success message
+                const msgEl = document.getElementById(`msg-${shipId}`);
+                if (msgEl) {
+                    msgEl.textContent = 'Purchased & Equipped!';
+                    msgEl.classList.remove('text-red-400');
+                    msgEl.classList.add('text-green-400');
+                    setTimeout(() => msgEl.textContent = '', 2000);
+                }
+
+            } else {
+                // Show error message
+                const msgEl = document.getElementById(`msg-${shipId}`);
+                if (msgEl) {
+                    msgEl.textContent = 'Not enough coins!';
+                    msgEl.classList.add('text-red-400');
+                    msgEl.classList.remove('text-green-400');
+                    setTimeout(() => msgEl.textContent = '', 2000);
+                }
+            }
+            renderShop();
+            updateCoinDisplay();
+        }
+
+        function equipShip(shipId) {
+            if (ownedShipIds.includes(shipId)) {
+                equippedShipId = shipId;
+                saveCoins();
+                renderShop();
+                // Show success message
+                const msgEl = document.getElementById(`msg-${shipId}`);
+                if (msgEl) {
+                    msgEl.textContent = 'Equipped!';
+                    msgEl.classList.remove('text-red-400');
+                    msgEl.classList.add('text-green-400');
+                    setTimeout(() => msgEl.textContent = '', 2000);
+                }
+            }
+        }
+        
+        // --- Auth Setup (Wait for Authentication before loading data) ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+            } else {
+                // Sign in anonymously if no token is available
+                if (initialAuthToken) {
+                    try {
+                        const credential = await signInWithCustomToken(auth, initialAuthToken);
+                        userId = credential.user.uid;
+                    } catch (error) {
+                        console.error("Error signing in with custom token, signing in anonymously:", error);
+                        await signInAnonymously(auth);
+                        userId = auth.currentUser.uid;
+                    }
+                } else {
+                    await signInAnonymously(auth);
+                    userId = auth.currentUser.uid;
+                }
+            }
+            isAuthReady = true;
+            console.log("Auth is ready. User ID:", userId);
             
-            if (event.code === 'KeyE' && !isTransitioning) {
-                toggleShop();
+            // Once authenticated, proceed to initial screen setup and load data
+            initStartScreen();
+        });
+
+        // --- Game Logic Functions ---
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            const size = Math.min(container.offsetWidth, container.offsetHeight);
+            canvas.width = size;
+            canvas.height = size;
+        }
+
+        function startGame() {
+            if (!isAuthReady) {
+                // Using console.warn instead of alert()
+                console.warn("Please wait for authentication to load."); 
+                return;
+            }
+            
+            initializeTone();
+            playStartSound();
+            startMusic();
+            
+            // Setup initial game state
+            resizeCanvas();
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.dx = 0;
+            player.dy = 0;
+            player.rotation = 0;
+            player.particles = []; // Reset particles
+
+            balls = [];
+            projectiles = []; // NEW: Reset projectiles
+            score = 0;
+            sessionCoins = 0; // Reset session coins
+            lastTime = performance.now();
+            lastCoinUpdateTime = lastTime; // Start coin timer
+            lastHitSoundTime = 0; // Reset sound throttle timer
+            spawnTimer = spawnInterval;
+            ballSpeedFactor = 1.0;
+            keys = {};
+
+            overlay.classList.remove('game-over-visible');
+            overlay.style.display = 'none'; 
+            gameRunning = true;
+            
+            updateCoinDisplay();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function initStartScreen() {
+            // Draw initial clean state immediately
+            resizeCanvas();
+            draw(); 
+
+            // Load coins once auth is ready
+            if (isAuthReady) {
+                loadCoins();
+            } else {
+                // If not ready, use a default state until onAuthStateChanged finishes
+                coins = 0;
+                updateCoinDisplay();
+            }
+
+            // Show standard overlay content
+            shopContainer.style.display = 'none';
+            standardOverlay.style.display = 'flex';
+
+            overlayTitle.textContent = 'BALL DODGE ARENA';
+            overlayTitle.classList.remove('text-red-500', 'animate-pulse');
+            overlayTitle.classList.add('text-cyan-400');
+            
+            const currentShip = SHIP_DATA.find(s => s.id === equippedShipId);
+            const multiplier = currentShip ? currentShip.multiplier : 1;
+            const damage = currentShip ? currentShip.damage : 1;
+
+
+            overlayMessage.textContent = `Equipped: ${currentShip.name} (${multiplier}x Multiplier, ${damage} Damage).`;
+            totalCoinsMessage.textContent = ''; // Clear coin message on start screen
+            actionButton.textContent = 'START ARENA';
+            
+            overlay.style.display = 'flex';
+            overlay.classList.add('game-over-visible');
+        }
+
+        function spawnBall() {
+            const minBallSize = 15;
+            const maxBallSize = 25;
+            const size = Math.floor(Math.random() * (maxBallSize - minBallSize + 1)) + minBallSize;
+            const radius = size / 2;
+
+            const health = Math.max(1, Math.floor(radius * 1.5)); // Health based on size
+            
+            const newBall = {
+                x: Math.random() * (canvas.width - size * 2) + size, 
+                y: -size, 
+                radius: radius,
+                speed: (3 + Math.random() * 3) * ballSpeedFactor, 
+                health: health,      // NEW
+                maxHealth: health,   // NEW
+            };
+            balls.push(newBall);
+        }
+
+        function shootProjectile() {
+            if (!gameRunning) return;
+            const currentShip = SHIP_DATA.find(s => s.id === equippedShipId);
+            if (!currentShip) return;
+            
+            playLaserSound();
+
+            // Simple upward shot from the player's front
+            projectiles.push({
+                x: player.x,
+                y: player.y - PLAYER_SIZE,
+                radius: 3,
+                speed: 15, // Fast projectile
+                damage: currentShip.damage,
+                color: currentShip.glow,
+                vx: 0,
+                vy: -1,
+            });
+        }
+
+        function updateParticles(deltaTime) {
+            const currentShip = SHIP_DATA.find(s => s.id === equippedShipId);
+            if (!currentShip || currentShip.particleType === 0) {
+                player.particles = [];
                 return;
             }
 
-            if (event.code === 'Space' && !isPaused && !isTransitioning) {
-                jumpBufferTimer = JUMP_BUFFER_DURATION;
+            // Add new particles
+            if (Math.random() < 0.8) {
+                const angle = player.rotation;
+                const baseLength = PLAYER_SIZE * 0.7;
+                const offset = {
+                    x: baseLength * Math.sin(angle),
+                    y: baseLength * Math.cos(angle)
+                };
+                
+                player.particles.push({
+                    x: player.x - offset.x + (Math.random() - 0.5) * 8,
+                    y: player.y + offset.y + (Math.random() - 0.5) * 8,
+                    // vx and vy control the direction of the exhaust
+                    vx: -(Math.sin(angle) * 0.5 + (Math.random() - 0.5) * 0.5),
+                    vy: (Math.cos(angle) * 0.5 + (Math.random() * 2)),
+                    life: 100, // lifetime in frames
+                    size: currentShip.particleType === 3 ? 2.5 : 1.5, // Larger particles for Quantum Core
+                    color: currentShip.engineColor
+                });
+            }
 
-                if (player.isGrounded) {
-                    executeJump();
-                    jumpBufferTimer = 0; 
+            // Update existing particles
+            for (let i = player.particles.length - 1; i >= 0; i--) {
+                const p = player.particles[i];
+                p.x += p.vx * deltaTime / 16.67;
+                p.y += p.vy * deltaTime / 16.67;
+                p.life -= 1;
+                p.vy *= 0.98; // Slow down vertically
+
+                if (p.life <= 0) {
+                    player.particles.splice(i, 1);
                 }
             }
-            if (event.code === 'Escape' && !isTransitioning) {
-                 if (!document.getElementById('shop-modal').classList.contains('hidden')) {
-                     toggleShop();
-                     return;
-                 }
-                 
-                 if (document.pointerLockElement === renderer.domElement) {
-                    document.exitPointerLock(); 
-                 } else if (isPaused) {
-                    renderer.domElement.requestPointerLock();
-                 }
-            }
         }
 
-        function onKeyUp(event) {
-            keys[event.code] = false;
-        }
 
-        // --- Game Loop Functions ---
+        function update(currentTime) {
+            if (!gameRunning) return;
 
-        function handleMovement() {
-            if (isPaused) return; 
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            const deltaSeconds = deltaTime / 1000;
 
-            if (jumpBufferTimer > 0) {
-                jumpBufferTimer--;
+            // 1. Update Score
+            score += deltaSeconds;
+            scoreDisplay.textContent = `TIME: ${score.toFixed(2)}s`;
+
+            // 2. Coin Earning (with multiplier)
+            const currentShip = SHIP_DATA.find(s => s.id === equippedShipId);
+            const multiplier = currentShip ? currentShip.multiplier : 1;
+
+            if (currentTime - lastCoinUpdateTime >= 1000) {
+                const secondsPassed = Math.floor((currentTime - lastCoinUpdateTime) / 1000);
+                sessionCoins += multiplier * secondsPassed;
+                lastCoinUpdateTime += secondsPassed * 1000;
+                updateCoinDisplay();
             }
 
-            let forward = 0;
-            let right = 0;
+            // 3. Player Movement 
+            let moveX = player.dx;
+            let moveY = player.dy;
+
+            if (keys['w'] || keys['W'] || keys['ArrowUp']) moveY = -1;
+            else if (keys['s'] || keys['S'] || keys['ArrowDown']) moveY = 1;
+            else moveY = 0;
+
+            if (keys['a'] || keys['A'] || keys['ArrowLeft']) moveX = -1;
+            else if (keys['d'] || keys['D'] || keys['ArrowRight']) moveX = 1;
+            else moveX = 0;
             
-            if (keys['KeyW']) { forward = 1; }
-            if (keys['KeyS']) { forward = -1; }
-            if (keys['KeyA']) { right = -1; }
-            if (keys['KeyD']) { right = 1; }
+            if (moveX !== 0 && moveY !== 0) {
+                const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
+                moveX /= magnitude;
+                moveY /= magnitude;
+            }
 
-            if (forward !== 0 || right !== 0) {
-                let direction = new THREE.Vector3(right, 0, -forward); 
-                const playerAngle = player.rotation.y;
-                direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerAngle);
+            player.x += moveX * player.speed;
+            player.y += moveY * player.speed;
+
+            let targetRotation = 0;
+            if (moveX < 0) { targetRotation = -MAX_ROTATION; } 
+            else if (moveX > 0) { targetRotation = MAX_ROTATION; }
+            player.rotation += (targetRotation - player.rotation) * ROTATION_SPEED; 
+
+            const halfSize = PLAYER_SIZE / 2;
+            player.x = Math.max(halfSize, Math.min(canvas.width - halfSize, player.x));
+            player.y = Math.max(halfSize, Math.min(canvas.height - halfSize, player.y));
+            
+            // Update particles based on movement
+            updateParticles(deltaTime);
+
+
+            // 4. Ball Spawning and Difficulty Scaling
+            spawnTimer -= deltaTime;
+            if (spawnTimer <= 0) {
+                spawnBall();
+                ballSpeedFactor = 1.0 + Math.min(score / 50, 4.0);
+                spawnInterval = Math.max(1000 - score * 10, 50);
+                spawnTimer = spawnInterval;
+            }
+
+            // 5. Ball Movement and Cleanup & Collision (Player to Ball)
+            for (let i = balls.length - 1; i >= 0; i--) {
+                const ball = balls[i];
+                ball.y += ball.speed * (deltaTime / 16.67);
                 
-                direction.normalize().multiplyScalar(moveSpeed);
-
-                player.position.x += direction.x;
-                player.position.z += direction.z;
+                if (ball.y - ball.radius > canvas.height) {
+                    balls.splice(i, 1);
+                }
+                
+                if (checkCollision(player, ball)) {
+                    gameOver();
+                    return;
+                }
             }
 
-            // Apply Gravity
-            if (!player.isGrounded) {
-                playerVelocity.y -= GRAVITY;
-            }
+            // 6. Projectile Movement and Collision (Projectile to Ball)
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.y += p.vy * p.speed * (deltaTime / 16.67);
 
-            // Apply Y velocity
-            player.position.y += playerVelocity.y;
+                // Check if projectile is off-screen
+                if (p.y + p.radius < 0) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
 
-            // Check for falling off the world
-            if (player.position.y < -10) {
-                playDeathSound(); 
-                resetPlayer();
-            }
+                let hit = false;
+                for (let j = balls.length - 1; j >= 0; j--) {
+                    const ball = balls[j];
+                    const dx = p.x - ball.x;
+                    const dy = p.y - ball.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-            checkCollision();
-        }
-
-        function checkCollision() {
-            player.isGrounded = false;
-            // The bounding box check uses the player group's position which is at the center of the visible skin
-            const playerBox = new THREE.Box3().setFromObject(player); 
-
-            for (const platform of platforms) {
-                const platformBox = platform.userData.boundingBox;
-                if (playerBox.intersectsBox(platformBox)) {
-
-                    const yOffsetToFeet = player.userData.yOffsetToFeet; 
-                    const playerBottom = player.position.y - yOffsetToFeet;
-                    const platformTop = platform.position.y + platform.geometry.parameters.height / 2;
-                    const platformDepth = platform.geometry.parameters.depth;
-
-                    if (playerVelocity.y <= 0 && playerBottom < platformTop + 0.03) { 
+                    if (distance < (p.radius + ball.radius)) {
+                        // HIT!
+                        hit = true;
+                        ball.health -= p.damage;
+                        playHitSound(); // Now throttled
                         
-                        const platformWidth = platform.geometry.parameters.width;
-
-                        const onX = Math.abs(player.position.x - platform.position.x) < (platformWidth / 2) + PLAYER_RADIUS;
-                        const onZ = Math.abs(player.position.z - platform.position.z) < (platformDepth / 2) + PLAYER_RADIUS;
-
-                        if (onX && onZ) {
-                            
-                            if (playerBottom < platformTop) {
-                                player.position.y = platformTop + yOffsetToFeet; 
-                            }
-
-                            playerVelocity.y = 0;
-                            player.isGrounded = true;
-                            
-                            if (jumpBufferTimer > 0) {
-                                executeJump();
-                                jumpBufferTimer = 0; 
-                            }
-
-
-                            // Check for finish line
-                            if (platform.userData.isFinish) {
-                                
-                                if (isTransitioning) return; 
-                                isTransitioning = true; 
-                                
-                                // 1. Calculate Reward, applying the skin multiplier
-                                const skinDetails = getSkinDetails(currentSkinId);
-                                const currentMultiplier = skinDetails ? skinDetails.multiplier : 1.0; 
-                                const actualReward = Math.round(LEVEL_REWARD * currentMultiplier);
-
-                                isPaused = true;
-                                document.exitPointerLock(); 
-                                
-                                playWinSound(); 
-                                
-                                // 2. Update Coins
-                                coinCount += actualReward;
-                                const winMessage = `LEVEL ${levelCounter} COMPLETE! (+${actualReward} Coins)`;
-                                updateCoinDisplay(); 
-
-                                // 3. Display Win/Generate Next Level
-                                showMessageBox(winMessage, `Course finished. Generating Level ${levelCounter + 1}...`, true, false); 
-                                
-                                setTimeout(() => {
-                                    generateNewLevel();
-                                    
-                                    if (isPaused && document.getElementById('shop-modal').classList.contains('hidden')) {
-                                        // Auto-resume camera lock after transition
-                                        renderer.domElement.requestPointerLock();
-                                        showMessageBox(`Level ${levelCounter} Ready!`, "Good luck!", true, true);
-                                    }
-                                    
-                                    isTransitioning = false; 
-                                }, 2000);
-                                return;
-                            }
-                            return; 
+                        if (ball.health <= 0) {
+                            // Destroyed! Grant coins.
+                            const coinReward = Math.ceil(ball.maxHealth / 2); // Reward based on original health
+                            sessionCoins += coinReward;
+                            updateCoinDisplay();
+                            balls.splice(j, 1);
                         }
-                    } 
+                        break; // Projectile can only hit one ball
+                    }
+                }
+                
+                if (hit) {
+                    projectiles.splice(i, 1);
                 }
             }
         }
 
-        function updateCamera() {
-            const localOffset = new THREE.Vector3(0, 3, 5); 
-            const rotation = player.quaternion.clone();
-            localOffset.applyQuaternion(rotation);
-
-            const cameraPosition = new THREE.Vector3().copy(player.position).add(localOffset);
-            camera.position.copy(cameraPosition);
-
-            camera.lookAt(player.position);
+        function checkCollision(p, b) {
+            const dx = p.x - b.x;
+            const dy = p.y - b.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (b.radius + PLAYER_SIZE / 2); 
         }
 
-        function resetPlayer() {
-            const PLATFORM_Y = 0.5;
-            const Y_OFFSET_TO_FEET = player.userData.yOffsetToFeet; 
+        // --- drawPlayer FUNCTION ---
+        function drawPlayer() {
+            // Find the currently equipped ship's data
+            const currentShip = SHIP_DATA.find(s => s.id === equippedShipId) || SHIP_DATA[0];
 
-            player.position.set(0, PLATFORM_Y + Y_OFFSET_TO_FEET, 0);
-            playerVelocity.set(0, 0, 0);
-            player.isGrounded = true;
-        }
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.rotation); 
 
-        function handleSkinFeatures(time) {
-            const skinDetails = getSkinDetails(currentSkinId);
+            const halfSize = PLAYER_SIZE / 2;
+            
+            // Draw particles first so they appear behind the ship (Engine Trails)
+            player.particles.forEach(p => {
+                ctx.globalAlpha = p.life / 100;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x - player.x, p.y - player.y, p.size * (p.life/100), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            });
 
-            if (skinDetails.features === 'pulsate' && playerMesh && playerMesh.material) {
-                // Pulsating light
-                pulsationTime += 0.05;
-                const intensity = 0.1 + (Math.sin(pulsationTime) * 0.05); // Range from 0.05 to 0.15
-                playerMesh.material.emissiveIntensity = intensity;
-            }
-
-            if (skinDetails.features === 'transparency' && playerMesh && playerMesh.material) {
-                // Void Ghost: Subtle color shift
-                const hueShift = Math.sin(time * 0.001) * 0.05 + 0.5; // Shift hue around the color base
-                const color = skinDetails.color;
+            // 1. Draw Engine Exhaust Glow
+            ctx.shadowColor = currentShip.engineColor;
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = currentShip.engineColor; 
+            ctx.fillRect(-halfSize * 0.6, halfSize, halfSize * 1.2, PLAYER_SIZE * 0.5); 
+            
+            // 2. Draw Main Ship Body 
+            ctx.shadowColor = currentShip.glow; // Use the equipped ship's glow color
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = currentShip.color; // Use the equipped ship's main color
+            
+            ctx.beginPath();
+            
+            // --- Custom Ship Shapes (New shapes start from 'ghost') ---
+            if (currentShip.id === 'default' || currentShip.id === 'viper') {
+                // Original Triangle Shape
+                ctx.moveTo(0, -PLAYER_SIZE);
+                ctx.lineTo(halfSize * 1.5, halfSize);
+                ctx.lineTo(-halfSize * 1.5, halfSize);
                 
-                // Temporarily create a color object to manipulate hue
-                const c = new THREE.Color(color);
-                c.setHSL(c.getHSL(new THREE.HSL()).h + hueShift % 1, 0.6, 0.7); 
-                playerMesh.material.color.setHex(color); // Keep base color for most of the effect
-                playerMesh.material.emissive.setHex(c.getHex()); // Make the emissive color shift slightly
+            } else if (currentShip.id === 'ghost') {
+                // New Shape: Hexagonal/Stealthier
+                ctx.moveTo(0, -PLAYER_SIZE);
+                ctx.lineTo(halfSize * 1.5, halfSize * 0.5);
+                ctx.lineTo(halfSize * 0.8, halfSize);
+                ctx.lineTo(-halfSize * 0.8, halfSize);
+                ctx.lineTo(-halfSize * 1.5, halfSize * 0.5);
+                
+            } else if (currentShip.id === 'titan') {
+                // New Shape: Wide and sturdy (Rectangle with swept wings)
+                ctx.moveTo(0, -PLAYER_SIZE);
+                ctx.lineTo(halfSize * 2, halfSize * 0.8);
+                ctx.lineTo(halfSize * 1.5, halfSize);
+                ctx.lineTo(-halfSize * 1.5, halfSize);
+                ctx.lineTo(-halfSize * 2, halfSize * 0.8);
+                
+            } else if (currentShip.id === 'quantum' || currentShip.id === 'ultimate') {
+                // New Shape: Split/Advanced Fighter
+                ctx.moveTo(0, -PLAYER_SIZE * 1.2);
+                ctx.lineTo(halfSize * 0.5, -halfSize * 0.5);
+                ctx.lineTo(halfSize * 2, halfSize * 0.8);
+                ctx.lineTo(halfSize * 1.5, halfSize);
+                ctx.lineTo(-halfSize * 1.5, halfSize);
+                ctx.lineTo(-halfSize * 2, halfSize * 0.8);
+                ctx.lineTo(-halfSize * 0.5, -halfSize * 0.5);
             }
+            // --- End Custom Ship Shapes ---
+
+            ctx.closePath();
+            ctx.fill();
+
+            // 3. Cockpit/Detail (Do this before guns to avoid shadow issues)
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0d1117'; // Always black for cockpit
+            ctx.beginPath();
+            ctx.arc(0, -PLAYER_SIZE * 0.4, PLAYER_SIZE * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Draw Guns (Starting from 'ghost' ship)
+            if (currentShip.id === 'ghost' || currentShip.id === 'titan' || currentShip.id === 'quantum' || currentShip.id === 'ultimate') {
+                 ctx.fillStyle = currentShip.engineColor;
+                 ctx.shadowColor = currentShip.engineColor;
+                 ctx.shadowBlur = 5;
+
+                 if (currentShip.id === 'ghost') {
+                    // Subtle guns near the front
+                    ctx.fillRect(halfSize * 1.1, -halfSize * 0.5, 5, 12);
+                    ctx.fillRect(-halfSize * 1.1 - 5, -halfSize * 0.5, 5, 12);
+                 } else if (currentShip.id === 'titan') {
+                    // Large cannons at the sides
+                    ctx.fillRect(halfSize * 1.8, halfSize * 0.2, 8, 15);
+                    ctx.fillRect(-halfSize * 1.8 - 8, halfSize * 0.2, 8, 15);
+                 } else if (currentShip.id === 'quantum' || currentShip.id === 'ultimate') {
+                    // Multiple, bright cannons
+                    // Center Cannons (on the nose)
+                    ctx.fillRect(-2, -PLAYER_SIZE * 1.2, 4, 10);
+                    // Wing Cannons
+                    ctx.fillRect(halfSize * 1.8, halfSize * 0.5, 6, 10);
+                    ctx.fillRect(-halfSize * 1.8 - 6, halfSize * 0.5, 6, 10);
+                 }
+                 ctx.shadowBlur = 0;
+            }
+
+            ctx.restore();
+        }
+        // --- END drawPlayer FUNCTION ---
+
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#161b22'; // Arena background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Projectiles (NEW)
+            projectiles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
             
-            if (skinDetails.features === 'particles') {
-                updateParticles();
-            }
+            // Reset shadows for next elements
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+
+            // 2. Draw Meteors 
+            balls.forEach(ball => {
+                const x = ball.x;
+                const y = ball.y;
+                const r = ball.radius;
+
+                // 1. Draw the Heat/Atmospheric Glow (Shadow)
+                ctx.shadowColor = METEOR_GLOW_COLOR;
+                ctx.shadowBlur = 20;
+
+                // 2. Draw the main rock body (Darker circle)
+                ctx.fillStyle = METEOR_BODY_COLOR;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 3. Draw Inner Light/Cracks (No shadow needed for this detail)
+                ctx.shadowBlur = 0; 
+                
+                // Add visual damage based on health (NEW)
+                const damageRatio = ball.health / ball.maxHealth;
+                if (damageRatio < 1.0) {
+                    // Damage color: Redder as health drops
+                    const red = 74 + (1 - damageRatio) * 150; 
+                    const damageColor = `rgb(${Math.floor(red)}, 74, 74)`;
+                    
+                    // Draw a damaged body (slightly smaller circle based on damage)
+                    ctx.fillStyle = damageColor;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r * 0.9, 0, Math.PI * 2); 
+                    ctx.fill();
+                    
+                    // Draw a simple health bar
+                    ctx.fillStyle = '#0d1117';
+                    ctx.fillRect(x - r, y - r - 8, r * 2, 4);
+                    
+                    // Health bar color changes from green -> yellow -> red
+                    ctx.fillStyle = damageRatio > 0.5 ? '#39ff14' : (damageRatio > 0.2 ? '#ffff00' : '#ff0000');
+                    ctx.fillRect(x - r, y - r - 8, r * 2 * damageRatio, 4);
+                }
+
+
+                // Simple light spot/glint
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'; 
+                ctx.beginPath();
+                ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Simulate a small crater/dark spot
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; 
+                ctx.beginPath();
+                ctx.arc(x + r * 0.4, y + r * 0.1, r * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Reset shadows for player
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+
+            // 3. Draw Player
+            drawPlayer();
         }
 
-        function animate(time) {
-            requestAnimationFrame(animate);
-            
-            if (finishFlag) {
-                finishFlag.rotation.y += 0.02; 
-            }
-            
-            handleSkinFeatures(time);
+        function gameLoop() {
+            if (!gameRunning) return;
 
-            if (!isPaused) {
-                handleMovement();
-                updateCamera();
-            }
+            const currentTime = performance.now();
+            update(currentTime);
+            draw();
 
-            renderer.render(scene, camera);
+            requestAnimationFrame(gameLoop);
         }
 
-        // --- Initialization ---
-        window.onload = function () {
-            init();
-            animate(0); // Pass initial time
-        };
+        function gameOver() {
+            gameRunning = false;
+            playGameOverSound();
 
+            // 1. Update persistent coin total and save
+            coins += sessionCoins;
+            saveCoins();
+            
+            // 2. Update Game Over Screen
+            shopContainer.style.display = 'none';
+            standardOverlay.style.display = 'flex';
+
+            overlayTitle.textContent = 'GAME OVER';
+            overlayTitle.classList.remove('text-cyan-400');
+            overlayTitle.classList.add('text-red-500', 'animate-pulse');
+            
+            const currentShip = SHIP_DATA.find(s => s.id === equippedShipId);
+            const multiplier = currentShip ? currentShip.multiplier : 1;
+            
+            overlayMessage.textContent = `You survived for ${score.toFixed(2)} seconds and earned ${sessionCoins} new coins (${multiplier}x multiplier).`; 
+            totalCoinsMessage.textContent = `TOTAL BALANCE: ${coins} COINS`;
+
+            actionButton.textContent = 'RESTART ARENA';
+            
+            overlay.style.display = 'flex';
+            overlay.classList.add('game-over-visible');
+            
+            updateCoinDisplay(); // Ensure the corner coin display reflects the new total
+        }
+
+        // --- Event Listeners and Setup ---
+
+        // 1. Keyboard Input for Desktop
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+            }
+            // Spacebar to shoot (NEW)
+            if (e.key === ' ' && gameRunning) {
+                shootProjectile();
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // 2. Mouse/Click Input (NEW: Click to shoot)
+        canvas.addEventListener('click', (e) => {
+            if (gameRunning) {
+                shootProjectile();
+            }
+        });
+
+        // 3. Touch Input for Mobile
+        let touchStart = { x: 0, y: 0 };
+        let touchTimer = 0;
+        let isMoving = false;
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStart.x = touch.clientX;
+            touchStart.y = touch.clientY;
+            touchTimer = Date.now();
+            isMoving = false;
+            
+            // Set initial movement state based on touch direction relative to player, for immediate response
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            const dx = touchX - player.x;
+            const dy = touchY - player.y;
+
+            let moveX = 0, moveY = 0;
+            if (Math.abs(dx) > 10) moveX = dx > 0 ? 1 : -1;
+            if (Math.abs(dy) > 10) moveY = dy > 0 ? 1 : -1;
+
+            keys['w'] = moveY < 0; keys['s'] = moveY > 0;
+            keys['a'] = moveX < 0; keys['d'] = moveX > 0;
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            isMoving = true;
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchStart.x;
+            const dy = touch.clientY - touchStart.y;
+            
+            const threshold = 15;
+
+            keys['w'] = dy < -threshold; keys['s'] = dy > threshold;
+            keys['a'] = dx < -threshold; keys['d'] = dx > threshold;
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            keys['w'] = keys['s'] = keys['a'] = keys['d'] = false;
+
+            // Check for a quick tap (not moving much, quick release) to register a shot
+            const touchDuration = Date.now() - touchTimer;
+            if (touchDuration < 150 && !isMoving && gameRunning) {
+                 shootProjectile();
+            }
+        });
+
+
+        // 4. Action Button (Start/Restart)
+        actionButton.addEventListener('click', startGame);
+        shopButton.addEventListener('click', showShop);
+        backButton.addEventListener('click', initStartScreen);
+
+        // 5. Initial setup and responsiveness
+        window.addEventListener('resize', resizeCanvas);
+        
+        // initStartScreen is triggered by onAuthStateChanged.
     </script>
 </body>
 </html>
